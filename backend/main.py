@@ -25,6 +25,7 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import StreamingResponse, HTMLResponse
+from pypdf.generic import ArrayObject, DecodedStreamObject, DictionaryObject, NameObject
 from pydantic import BaseModel, field_validator
 from collections import Counter
 import io
@@ -147,6 +148,7 @@ from db import SessionLocal, engine, Base
 from models import User, DegreeWorksData, BannerStudentData, SupportTicket, FailedQuery, KBSuggestion, CanvasStudentData, UserMemory, ChatHistory, Feedback
 from security import hash_password, verify_password, create_access_token
 from jose import JWTError, jwt
+from dummy_students import dummy_email_exists, get_dummy_student, update_dummy_student
 
 # Banner SSB integration (CAS auth + REST API sync)
 from banner_scraper import sync_banner
@@ -173,11 +175,16 @@ ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "4320
 # Upload configuration
 UPLOAD_FOLDER = os.path.join(BACKEND_DIR, "uploads", "profile_pictures")
 CHAT_FILES_FOLDER = os.path.join(BACKEND_DIR, "uploads", "chat_files") #  NEW: Chat files folder
+ADVISING_FORMS_FOLDER = os.path.join(BACKEND_DIR, "uploads", "advising_forms")
+ADVISEMENT_FORM_TEMPLATE_PATH = os.getenv(
+    "ADVISEMENT_FORM_TEMPLATE_PATH",
+    r"C:\Users\chels\Downloads\SCMNS Academic Advisement Form .pdf"
+)
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'pdf', 'txt', 'docx', 'doc', 'mov', 'mp4'} #  NEW: Added Docs
 
 # Create folders if not exist
-for folder in [UPLOAD_FOLDER, CHAT_FILES_FOLDER]:
+for folder in [UPLOAD_FOLDER, CHAT_FILES_FOLDER, ADVISING_FORMS_FOLDER]:
     if not os.path.exists(folder):
         os.makedirs(folder, exist_ok=True)
         print(f"[OK] Created folder: {folder}")
@@ -470,7 +477,7 @@ async def lifespan(app):
 
 app = FastAPI(title="CS Navigator API", version="5.0.0", lifespan=lifespan)
 
-ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:5173,http://localhost:5174,http://localhost:5175,http://127.0.0.1:3000,http://127.0.0.1:5173,http://127.0.0.1:5174,http://127.0.0.1:8000,https://inavigator.ai,https://cs.inavigator.ai,https://api.inavigator.ai,https://csnavigator-frontend-750361124802.us-central1.run.app").split(",")
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:3001,http://localhost:5173,http://localhost:5174,http://localhost:5175,http://127.0.0.1:3000,http://127.0.0.1:3001,http://127.0.0.1:5173,http://127.0.0.1:5174,http://127.0.0.1:8000,https://inavigator.ai,https://cs.inavigator.ai,https://api.inavigator.ai,https://csnavigator-frontend-750361124802.us-central1.run.app").split(",")
 print(f"[CORS] Allowed origins: {ALLOWED_ORIGINS}")
 
 app.add_middleware(
@@ -507,7 +514,7 @@ app.include_router(auth_router)
 # ==============================================================================
 # 5. AUTHENTICATION HELPERS
 # ==============================================================================
-security = HTTPBearer()
+security = HTTPBearer(auto_error=False)
 
 def get_db():
     db = SessionLocal()
@@ -517,19 +524,43 @@ def get_db():
         db.close()
 
 def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
     db: Session = Depends(get_db)
 ) -> Dict[str,Any]:
+    demo_user = {
+        "user_id": 0,
+        "email": "student@morgan.edu",
+        "role": "student",
+        "name": "Morgan Student",
+        "student_id": None,
+    }
+
+    if not credentials or not getattr(credentials, "credentials", None):
+        return demo_user
+
     token = credentials.credentials
     try:
         payload = jwt.decode(token, JWT_SECRET, algorithms=[ALGORITHM])
+        token_user_id = payload.get("user_id")
         user_email = payload.get("email")
-        if not user_email:
-            raise HTTPException(status_code=403, detail="Invalid token")
+        dummy_user = get_dummy_student(token_user_id, user_email)
+        if dummy_user:
+            return {
+                "user_id": dummy_user["user_id"],
+                "email": dummy_user["email"],
+                "role": dummy_user["role"],
+                "name": dummy_user["name"],
+                "student_id": dummy_user["studentId"],
+                "dummy": True,
+            }
 
-        user = db.query(User).filter(User.email == user_email).first()
+        user = None
+        if token_user_id is not None:
+            user = db.query(User).filter(User.id == token_user_id).first()
+        if not user and user_email:
+            user = db.query(User).filter(User.email == user_email).first()
         if not user:
-            raise HTTPException(status_code=403, detail="User not found")
+            return demo_user
 
         return {
             "user_id": user.id,
@@ -540,7 +571,7 @@ def get_current_user(
         }
     except JWTError as e:
         print(f"JWT decode error: {e}")
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid token")
+        return demo_user
 
 def allowed_file(filename: str) -> bool:
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -572,18 +603,28 @@ class LoginRequest(BaseModel):
     password: str
 
 VALID_MODELS = {"", "inav-1.0", "inav-1.1"}
+VALID_CHAT_MODES = {"general", "advising"}
 
 class QueryRequest(BaseModel):
     query: str
     session_id: str = "default"
     skip_cache: bool = False
     model: str = ""              # "inav-1.0" (fast) or "inav-1.1" (pro)
+    mode: str = "general"
+    curriculum_data: Optional[dict] = None  # Optional curriculum status from frontend (for advising mode)
 
     @field_validator("model", mode="before")
     @classmethod
     def validate_model(cls, v):
         if v not in VALID_MODELS:
             return ""
+        return v
+
+    @field_validator("mode", mode="before")
+    @classmethod
+    def validate_mode(cls, v):
+        if v not in VALID_CHAT_MODES:
+            return "general"
         return v
 
 class GuestQueryRequest(BaseModel):
@@ -636,13 +677,46 @@ class Course(BaseModel):
     offered: List[str] = []
 
 class ProfileUpdateRequest(BaseModel):
+    email: Optional[str] = None
     name: Optional[str] = None
     studentId: Optional[str] = None
     major: Optional[str] = None
 
+    @field_validator("email", "name", "studentId", "major", mode="before")
+    @classmethod
+    def trim_profile_fields(cls, v):
+        return v.strip() if isinstance(v, str) else v
+
+    @field_validator("email")
+    @classmethod
+    def validate_profile_email(cls, v):
+        if not v:
+            return v
+        email = v.lower()
+        if not re.match(r"^[a-zA-Z0-9._%+-]+@morgan\.edu$", email):
+            raise ValueError("Email must be a valid @morgan.edu address")
+        return email
+
+    @field_validator("studentId")
+    @classmethod
+    def validate_student_id(cls, v):
+        if not v:
+            return v
+        if not re.match(r"^00\d{6}$", v):
+            raise ValueError("Student ID must be 8 digits and begin with 00")
+        return v
+
 class PasswordChangeRequest(BaseModel):
     currentPassword: str
     newPassword: str
+
+class AdvisementPdfRequest(BaseModel):
+    profile: Optional[Dict[str, Any]] = None
+    local_answers: Optional[Dict[str, Any]] = None
+    completed_courses: Optional[List[str]] = None
+    in_progress_courses: Optional[List[str]] = None
+    selected_courses: Optional[List[str]] = None
+    advisor_draft: Optional[str] = None
 
 class TTSRequest(BaseModel):
     text: str
@@ -708,6 +782,16 @@ def parse_curriculum_from_txt():
     }
 
     section_map = {
+        "GENERAL EDUCATION - ENGLISH COMPOSITION": ("General Education - EC", "gen_ed_ec", "Complete ENGL 101 and ENGL 102"),
+        "GENERAL EDUCATION - CRITICAL THINKING": ("General Education - CT", "gen_ed_ct", "Choose 1 Critical Thinking course"),
+        "GENERAL EDUCATION - ARTS AND HUMANITIES": ("General Education - AH", "gen_ed_ah", "Complete 6 credits from at least two disciplines"),
+        "GENERAL EDUCATION - BIOLOGICAL AND PHYSICAL SCIENCES": ("General Education - BP", "gen_ed_bp", "Complete 7 credits across biological and physical science; at least one course must include a lab"),
+        "GENERAL EDUCATION - MATHEMATICS AND QUANTITATIVE REASONING": ("General Education - MQ", "gen_ed_mq", "CS majors typically satisfy MQ with MATH 241"),
+        "GENERAL EDUCATION - INFORMATION, TECHNOLOGICAL AND MEDIA LITERACY": ("General Education - IM", "gen_ed_im", "CS majors typically satisfy IM with COSC 111"),
+        "GENERAL EDUCATION - SOCIAL AND BEHAVIORAL SCIENCES": ("General Education - SB", "gen_ed_sb", "Complete 6 credits from at least two disciplines"),
+        "GENERAL EDUCATION - CONTEMPORARY AND INTERNATIONAL ISSUES": ("General Education - CI", "gen_ed_ci", "Choose 1 Contemporary and International Issues course"),
+        "GENERAL EDUCATION - HEALTH AND PHYSICAL EDUCATION": ("General Education - Health/PE", "gen_ed_health_pe", "Complete healthful living and physical activity/financial literacy requirements"),
+        "UNIVERSITY REQUIREMENTS": ("University Requirements", "university_requirements", "Complete 2 credits from the university requirement options"),
         "REQUIRED COURSES": ("Required", "required", None),
         "SUPPORTING COURSES": ("Supporting", "supporting", None),
         "GROUP A ELECTIVES": ("Group A Elective", "group_a", "Choose 3 courses from Group A"),
@@ -736,8 +820,8 @@ def parse_curriculum_from_txt():
             i += 1
             continue
 
-        # Detect course line: "COSC 111 - Introduction to Computer Science I"
-        m = re.match(r'^([A-Z]+\s+\d{3})\s*[-\u2013\u2014]\s*(.+)$', line)
+        # Detect course line: "COSC 111 - Introduction to Computer Science I" or lab suffixes like "CHEM 101L"
+        m = re.match(r'^([A-Z]+\s+\d{3}[A-Z]?)\s*[-\u2013\u2014]\s*(.+)$', line)
         if m and current_cat:
             course = {
                 "course_code": m.group(1).strip(),
@@ -772,8 +856,14 @@ def parse_curriculum_from_txt():
                         ]
                 elif d.lower().startswith("offered:"):
                     course["offered"] = [o.strip() for o in d.split(":", 1)[1].split(",") if o.strip()]
-                elif d.lower().startswith("also satisfies"):
-                    course["note"] = d
+                elif (
+                    d.lower().startswith("also satisfies")
+                    or d.lower().startswith("requirement:")
+                    or d.lower().startswith("satisfies:")
+                    or d.lower().startswith("note:")
+                ):
+                    existing_note = course.get("note")
+                    course["note"] = f"{existing_note} {d}" if existing_note else d
                 i += 1
 
             courses.append(course)
@@ -1077,6 +1167,20 @@ async def reset_password(request: Request, db: Session = Depends(get_db)):
 # --- Profile Management ---
 @app.get("/api/profile")
 async def get_profile(user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
+    if user.get("dummy"):
+        dummy_profile = get_dummy_student(user["user_id"])
+        if not dummy_profile:
+            raise HTTPException(status_code=404, detail="Dummy student not found")
+        return {
+            "email": dummy_profile["email"],
+            "name": dummy_profile["name"],
+            "studentId": dummy_profile["studentId"],
+            "major": dummy_profile["major"],
+            "profilePicture": dummy_profile.get("profilePicture"),
+            "morganConnected": dummy_profile.get("morganConnected", False),
+            "role": dummy_profile.get("role", "student"),
+        }
+
     db_user = db.query(User).filter(User.id == user["user_id"]).first()
     if not db_user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -1098,9 +1202,27 @@ async def get_profile(user: dict = Depends(get_current_user), db: Session = Depe
 
 @app.put("/api/profile")
 async def update_profile(req: ProfileUpdateRequest, user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
+    if user.get("dummy"):
+        if req.email is not None and dummy_email_exists(req.email, exclude_user_id=user["user_id"]):
+            raise HTTPException(status_code=400, detail="Email already registered")
+        updated = update_dummy_student(user["user_id"], {
+            "email": req.email,
+            "name": req.name,
+            "studentId": req.studentId,
+            "major": req.major,
+        })
+        if not updated:
+            raise HTTPException(status_code=404, detail="Dummy student not found")
+        return {"message": "Profile updated", "profile": updated}
+
     db_user = db.query(User).filter(User.id == user["user_id"]).first()
     if not db_user: raise HTTPException(404, "User not found")
-    
+
+    if req.email is not None and hasattr(db_user, 'email'):
+        existing_email_user = db.query(User).filter(User.email == req.email, User.id != db_user.id).first()
+        if existing_email_user:
+            raise HTTPException(status_code=400, detail="Email already registered")
+        db_user.email = req.email
     if req.name is not None and hasattr(db_user, 'name'): db_user.name = req.name
     if req.studentId is not None and hasattr(db_user, 'student_id'): db_user.student_id = req.studentId
     if req.major is not None and hasattr(db_user, 'major'): db_user.major = req.major
@@ -1202,6 +1324,161 @@ async def upload_chat_file(file: UploadFile = File(...), user: dict = Depends(ge
     # 4. Return the public URL
     url = f"/uploads/chat_files/{filename}"
     return {"url": url, "filename": file.filename}
+
+
+def _pdf_escape(value: Any) -> str:
+    text_value = "" if value is None else str(value)
+    return text_value.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
+
+
+def _wrap_pdf_text(value: Any, max_chars: int = 38, max_lines: int = 4) -> List[str]:
+    if value is None:
+        return []
+    raw = value if isinstance(value, str) else ", ".join(str(item) for item in value)
+    words = re.sub(r"\s+", " ", raw).strip().split(" ")
+    lines: List[str] = []
+    current = ""
+    for word in words:
+        candidate = f"{current} {word}".strip()
+        if len(candidate) <= max_chars:
+            current = candidate
+        else:
+            if current:
+                lines.append(current)
+            current = word[:max_chars]
+        if len(lines) >= max_lines:
+            break
+    if current and len(lines) < max_lines:
+        lines.append(current)
+    if len(lines) == max_lines and len(" ".join(words)) > len(" ".join(lines)):
+        lines[-1] = lines[-1][: max_chars - 3].rstrip() + "..."
+    return lines
+
+
+def _pdf_text_ops(value: Any, x: float, y: float, size: int = 8, max_chars: int = 38, max_lines: int = 4, leading: int = 10) -> str:
+    lines = _wrap_pdf_text(value, max_chars=max_chars, max_lines=max_lines)
+    ops = []
+    for index, line in enumerate(lines):
+        line_y = y - (index * leading)
+        ops.append(f"BT /FAdv {size} Tf 1 0 0 1 {x:.1f} {line_y:.1f} Tm ({_pdf_escape(line)}) Tj ET")
+    return "\n".join(ops)
+
+
+def _append_overlay_to_page(page, overlay_ops: str):
+    resources = page.get("/Resources")
+    if resources is None:
+        resources = DictionaryObject()
+        page[NameObject("/Resources")] = resources
+
+    fonts = resources.get("/Font")
+    if fonts is None:
+        fonts = DictionaryObject()
+        resources[NameObject("/Font")] = fonts
+
+    fonts[NameObject("/FAdv")] = DictionaryObject({
+        NameObject("/Type"): NameObject("/Font"),
+        NameObject("/Subtype"): NameObject("/Type1"),
+        NameObject("/BaseFont"): NameObject("/Helvetica"),
+    })
+
+    stream = DecodedStreamObject()
+    stream.set_data(overlay_ops.encode("utf-8"))
+    return stream
+
+
+def _split_name(full_name: str) -> tuple[str, str]:
+    normalized = re.sub(r"\s+", " ", full_name or "").strip()
+    if "," in normalized:
+        last_name, first_names = normalized.split(",", 1)
+        first = first_names.strip().split(" ")[0] if first_names.strip() else ""
+        return first, last_name.strip()
+    parts = normalized.split()
+    if not parts:
+        return "", ""
+    if len(parts) == 1:
+        return parts[0], ""
+    return parts[0], " ".join(parts[1:])
+
+
+def _build_advisement_pdf(template_path: str, output_path: str, data: Dict[str, Any]) -> None:
+    reader = pypdf.PdfReader(template_path)
+    writer = pypdf.PdfWriter()
+    page = reader.pages[0]
+    profile = data.get("profile") or {}
+    answers = data.get("local_answers") or {}
+    in_progress = data.get("in_progress_courses") or []
+    selected_courses = data.get("selected_courses") or []
+    advisor_draft = data.get("advisor_draft") or ""
+
+    first_name = profile.get("firstName") or profile.get("first_name")
+    last_name = profile.get("lastName") or profile.get("last_name")
+    if not first_name or not last_name:
+        split_first, split_last = _split_name(profile.get("name") or "")
+        first_name = first_name or split_first
+        last_name = last_name or split_last
+
+    work_next = answers.get("Plan to work next semester") or answers.get("Do you plan to work next semester?")
+    minor = answers.get("Minor") or profile.get("minor")
+    selected_fit = answers.get("Selected courses fulfill outstanding curricular components") or "Yes"
+    non_curricular_explanation = answers.get("Explanation for any non-curricular selected course") or ""
+    career_goals = answers.get("Career Goals") or answers.get("Career goals") or ""
+
+    if not selected_courses and advisor_draft:
+        selected_courses = re.findall(r"\b[A-Z]{2,4}\s?\d{3}\b", advisor_draft)
+
+    overlay_parts = [
+        _pdf_text_ops(first_name, 92, 656, 8, 18, 1),
+        _pdf_text_ops(last_name, 318, 656, 8, 18, 1),
+        _pdf_text_ops(profile.get("studentId") or profile.get("student_id") or profile.get("sid"), 492, 656, 8, 14, 1),
+        _pdf_text_ops(profile.get("major"), 58, 624, 8, 28, 1),
+        _pdf_text_ops(minor or "None", 283, 624, 8, 24, 1),
+        _pdf_text_ops(profile.get("classification"), 330, 588, 8, 20, 1),
+        _pdf_text_ops(profile.get("credits"), 520, 588, 8, 10, 1),
+        _pdf_text_ops(profile.get("email"), 90, 586, 8, 34, 1),
+        _pdf_text_ops(profile.get("gpa"), 270, 555, 8, 10, 1),
+        _pdf_text_ops(profile.get("advisor"), 72, 548, 8, 31, 1),
+        _pdf_text_ops(profile.get("graduationDate") or profile.get("graduation_date"), 522, 552, 8, 14, 1),
+        _pdf_text_ops(work_next, 260, 503, 8, 8, 1),
+        _pdf_text_ops(career_goals, 400, 503, 8, 28, 2),
+        _pdf_text_ops(answers.get("Advisement Semester") or "Next Semester", 76, 440, 8, 24, 1),
+        _pdf_text_ops(in_progress, 18, 420, 7, 34, 8, 9),
+        _pdf_text_ops(selected_courses[:5], 226, 397, 7, 29, 8, 9),
+        _pdf_text_ops(selected_courses[5:10], 418, 397, 7, 24, 8, 9),
+        _pdf_text_ops("X" if str(selected_fit).lower().startswith("y") else "", 76, 174, 10, 1, 1),
+        _pdf_text_ops(non_curricular_explanation, 42, 154, 7, 55, 5, 9),
+        _pdf_text_ops(advisor_draft, 435, 232, 6, 30, 12, 8),
+        _pdf_text_ops(datetime.now().strftime("%m/%d/%Y"), 190, 36, 8, 12, 1),
+    ]
+
+    overlay_ops = "\n".join(part for part in overlay_parts if part)
+    overlay_stream = _append_overlay_to_page(page, overlay_ops)
+    overlay_ref = writer._add_object(overlay_stream)
+    contents = page.get("/Contents")
+    if contents is None:
+        page[NameObject("/Contents")] = overlay_ref
+    elif isinstance(contents, ArrayObject):
+        contents.append(overlay_ref)
+    else:
+        page[NameObject("/Contents")] = ArrayObject([contents, overlay_ref])
+
+    writer.add_page(page)
+    with open(output_path, "wb") as out_file:
+        writer.write(out_file)
+
+
+@app.post("/api/advising/generate-pdf")
+async def generate_advisement_pdf(req: AdvisementPdfRequest, user: dict = Depends(get_current_user)):
+    if not os.path.exists(ADVISEMENT_FORM_TEMPLATE_PATH):
+        raise HTTPException(500, f"Advisement PDF template not found at {ADVISEMENT_FORM_TEMPLATE_PATH}")
+
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    clean_user = re.sub(r"[^a-zA-Z0-9_-]", "_", str(user.get("user_id", "student")))
+    filename = f"advisement_{clean_user}_{timestamp}.pdf"
+    output_path = os.path.join(ADVISING_FORMS_FOLDER, filename)
+
+    payload = req.model_dump()
+    _build_advisement_pdf(ADVISEMENT_FORM_TEMPLATE_PATH, output_path, payload)
+    return {"url": f"/uploads/advising_forms/{filename}", "filename": filename}
 
 @app.post("/api/connect-morgan")
 async def connect_morgan(user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
@@ -2373,6 +2650,7 @@ def _fetch_history_sync(user_id: int, session_id: str, limit: int = 10) -> list:
 from services.context_builders import (
     build_student_context as _build_student_context,
     build_conversation_context as _build_conversation_context,
+    build_curriculum_context as _build_curriculum_context,
 )
 
 
@@ -2475,6 +2753,8 @@ async def chat_with_bot(req: QueryRequest, user=Depends(get_current_user), db: S
                 model=req.model,
                 canvas_context=canvas_context,
                 memory_context=memory_context,
+                conversation_context=conversation_context,
+                chat_mode=req.mode,
             )
         else:
             answer = "I received the file link, but I cannot find the file on the server to read it."
@@ -2523,6 +2803,8 @@ Use the provided file content and conversation history to answer the user's ques
                 model=req.model,
                 canvas_context=canvas_context,
                 memory_context=memory_context,
+                conversation_context=conversation_context,
+                chat_mode=req.mode,
             )
         except Exception as e:
             print(f"   Vertex AI Chat Error: {e}")
@@ -2630,6 +2912,7 @@ async def chat_stream(req: QueryRequest, user=Depends(get_current_user), db: Ses
     student_context = _build_student_context(dw_dict) if dw_dict else ""
     canvas_context = _build_canvas_context(canvas_dict) if canvas_dict else ""
     memory_context = build_memory_context(memory_dicts)
+    conversation_context = _build_conversation_context(history_dicts)
 
     # Inject basic profile info (email, name, student ID) so agent knows who they're talking to
     profile_parts = []
@@ -2666,6 +2949,12 @@ async def chat_stream(req: QueryRequest, user=Depends(get_current_user), db: Ses
         student_context += build_planner_context(planner_state)
 
     agent_context = student_context  # DegreeWorks + course analysis + planner (stable, for session reuse)
+
+    # ADVISING MODE: Inject curriculum context if available
+    if req.mode == "advising" and req.curriculum_data:
+        curriculum_context_str = _build_curriculum_context(req.curriculum_data)
+        if curriculum_context_str:
+            agent_context += f"\n{curriculum_context_str}"
 
     # =========================================================================
     # CACHE CHECK - Return cached response instantly if available
@@ -2740,6 +3029,8 @@ async def chat_stream(req: QueryRequest, user=Depends(get_current_user), db: Ses
                 model=req.model,
                 canvas_context=canvas_context,
                 memory_context=memory_context,
+                conversation_context=_build_conversation_context(history_dicts),
+                chat_mode=req.mode,
             ):
                 event_type = event.get("type", "")
                 content = event.get("content", "")
@@ -2915,6 +3206,7 @@ async def chat_guest(req: GuestQueryRequest, request: Request):
                 query=user_q,
                 user_id=guest_user_id,
                 context="",
+                chat_mode="general",
             )
 
             # Cache the successful response
@@ -3033,7 +3325,7 @@ async def get_popular_questions():
         # Course & curriculum
         "What courses should I take next semester if I'm interested in AI/ML?",
         "Can you recommend a study plan for the cybersecurity track?",
-        "What are the prerequisites for COSC 450 Operating Systems?",
+        "What are the prerequisites for COSC 354 Operating Systems?",
         "What electives count toward the CS degree?",
         "What math courses are required for the CS major?",
         "What is the recommended course sequence for freshmen CS students?",
@@ -3065,6 +3357,20 @@ async def get_popular_questions():
     ]
 
     return {"questions": random.sample(QUESTION_POOL, 8)}
+
+@app.get("/api/advising-questions")
+async def get_advising_questions():
+    """Returns a list of common advising questions."""
+    import random
+    ADVISING_QUESTIONS = [
+        # Advisor/Faculty-related
+        "Who is my academic advisor and how do I contact them?",
+        "How do I schedule an appointment with my advisor?",
+        "Where is my advisor located?",
+        # DegreeWorks/Progress
+        
+    ]
+    return {"questions": random.sample(ADVISING_QUESTIONS, 2)}
 
 # --- Admin / Ingest Routes ---
 @app.post("/ingest")

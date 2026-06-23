@@ -200,8 +200,8 @@ export default function GuestChatbox() {
           {isSessionExpired ? (
             <>
               <span className="trial-text">Your free trial has ended</span>
-              <button onClick={() => setShowSignUpModal(true)} className="trial-cta">
-                Create Free Account for Unlimited
+              <button onClick={() => navigate("/login")} className="trial-cta">
+                Log in with a demo account
               </button>
             </>
           ) : hasSessionStarted ? (
@@ -212,8 +212,8 @@ export default function GuestChatbox() {
                 <span className="timer-label">remaining</span>
               </div>
               <span className="trial-divider">|</span>
-              <button onClick={() => navigate("/signup")} className="trial-link">
-                Create an account for unlimited access
+              <button onClick={() => navigate("/login")} className="trial-link">
+                Log in for unlimited access
               </button>
             </>
           ) : (
@@ -222,8 +222,8 @@ export default function GuestChatbox() {
                 <strong>15:00</strong> free trial • Timer starts on your first message
               </span>
               <span className="trial-divider">|</span>
-              <button onClick={() => navigate("/signup")} className="trial-link">
-                Create an account for unlimited access
+              <button onClick={() => navigate("/login")} className="trial-link">
+                Log in for unlimited access
               </button>
             </>
           )}
@@ -347,7 +347,7 @@ export default function GuestChatbox() {
               </div>
               <h2 className="signup-modal-title">Your Free Trial Has Ended</h2>
               <p className="signup-modal-subtitle">
-                Create a free account to continue using CS Navigator
+                Log in with a demo account to continue using CS Navigator
               </p>
             </div>
 
@@ -364,7 +364,7 @@ export default function GuestChatbox() {
                 </li>
                 <li>
                   <BsCheckCircle className="benefit-icon" />
-                  <span>Save your chat history</span>
+                  <span>Save your profile during the demo session</span>
                 </li>
                 <li>
                   <BsCheckCircle className="benefit-icon" />
@@ -394,9 +394,9 @@ export default function GuestChatbox() {
               </button>
               <button
                 className="signup-modal-btn primary"
-                onClick={() => navigate("/signup")}
+                onClick={() => navigate("/login")}
               >
-                Create Free Account
+                Log In
               </button>
             </div>
           </div>

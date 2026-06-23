@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { FaChartLine } from "@react-icons/all-files/fa/FaChartLine";
-import { FaSync } from "@react-icons/all-files/fa/FaSync";
-import { FaCheckCircle } from "@react-icons/all-files/fa/FaCheckCircle";
-import { FaExclamationTriangle } from "@react-icons/all-files/fa/FaExclamationTriangle";
-import { FaClock } from "@react-icons/all-files/fa/FaClock";
-import { FaBullseye } from "@react-icons/all-files/fa/FaBullseye";
-import { FaLightbulb } from "@react-icons/all-files/fa/FaLightbulb";
+import { FaChartLine } from "react-icons/fa";
+import { FaSync } from "react-icons/fa";
+import { FaCheckCircle } from "react-icons/fa";
+import { FaExclamationTriangle } from "react-icons/fa";
+import { FaClock } from "react-icons/fa";
+import { FaBullseye } from "react-icons/fa";
+import { FaLightbulb } from "react-icons/fa";
 import { getApiBase } from "../lib/apiBase";
 import "./GradeSurgeon.css";
 

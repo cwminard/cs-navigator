@@ -42,6 +42,7 @@ export default function Login({ onLoggedIn }) {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [dummyStudents, setDummyStudents] = useState([]);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -61,6 +62,13 @@ export default function Login({ onLoggedIn }) {
       window.history.replaceState({}, document.title, "/login");
     }
   }, [navigate, location]);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/dummy-students`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => setDummyStudents(data?.students || []))
+      .catch(() => setDummyStudents([]));
+  }, [API_BASE]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -211,6 +219,41 @@ export default function Login({ onLoggedIn }) {
           {submitting ? "Logging in..." : "Log in"}
         </button>
       </form>
+
+      {dummyStudents.length > 0 && (
+        <div style={{ marginTop: "20px" }}>
+          <p style={{ margin: "0 0 10px", fontSize: "0.85rem", color: "var(--text-muted, #64748b)" }}>
+            Demo students
+          </p>
+          <div style={{ display: "grid", gap: "8px", maxHeight: "220px", overflow: "auto" }}>
+            {dummyStudents.map((student) => (
+              <button
+                key={student.email}
+                type="button"
+                onClick={() => {
+                  setEmail(student.email);
+                  setPassword(student.password);
+                  setError("");
+                  setSuccess(`Selected ${student.name}. Password filled for demo login.`);
+                }}
+                style={{
+                  textAlign: "left",
+                  border: "1px solid rgba(148, 163, 184, 0.35)",
+                  borderRadius: "10px",
+                  padding: "10px 12px",
+                  background: "rgba(255,255,255,0.72)",
+                  cursor: "pointer",
+                }}
+              >
+                <strong style={{ display: "block", fontSize: "0.9rem" }}>{student.name}</strong>
+                <span style={{ display: "block", fontSize: "0.78rem", color: "#64748b" }}>
+                  {student.email} · {student.major}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </AuthLayout>
   );
 }

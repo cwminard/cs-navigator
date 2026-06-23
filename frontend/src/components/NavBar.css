@@ -178,6 +178,12 @@
   margin-left: 8px;
 }
 
+.nav-cta-disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  border: 0;
+}
+
 /* ========== Profile Icon Button - LIGHT & DARK MODE FIX ========== */
 .navbar-right {
   display: flex;

@@ -1,27 +1,23 @@
 # Local Development Setup
 
-Run each command in a separate terminal tab. Start in this order:
+On Windows, use the repeatable startup script from the repo root:
 
-## 1. ADK Engine (port 8080)
-
-```bash
-cd ~/Desktop/Projects/google-ai-engine-research/adk_deploy && /Library/Frameworks/Python.framework/Versions/3.12/bin/python3 -m google.adk.cli web . --port 8080
+```powershell
+.\start-local.ps1
 ```
 
-## 2. Backend (port 8000)
+This starts:
 
-```bash
-cd ~/Desktop/Projects/cs\ chatbot/cs-chatbot/backend && uvicorn main:app --reload --port 8000
+```text
+ADK      -> http://127.0.0.1:8080
+Backend  -> http://127.0.0.1:5001
+Frontend -> usually http://127.0.0.1:3001
 ```
 
-## 3. Frontend (port 5173)
+To stop the local processes:
 
-```bash
-cd ~/Desktop/Projects/cs\ chatbot/cs-chatbot/frontend && npm run dev
+```powershell
+.\stop-local.ps1
 ```
 
-## Open in browser
-
-```
-http://localhost:5173
-```
+If you want to run things manually, keep the same order: ADK first, backend second, frontend last.

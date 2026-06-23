@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
-import { FaBars } from "@react-icons/all-files/fa/FaBars";
-import { FaUser } from "@react-icons/all-files/fa/FaUser";
+import { FaBars } from "react-icons/fa";
+import { FaUser } from "react-icons/fa";
 import "../index.css";
 import "./NavBar.css";
 
@@ -149,9 +149,9 @@ export default function NavBar({ role, onToggleSidebar }) {
               Login
             </NavLink>
 
-            <NavLink to="/signup" className="btn-primary nav-cta">
+            <button type="button" className="btn-primary nav-cta nav-cta-disabled" disabled title="Sign up is disabled for this demo">
               Sign Up
-            </NavLink>
+            </button>
           </div>
         )}
       </div>

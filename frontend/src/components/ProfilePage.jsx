@@ -1,34 +1,57 @@
 // src/components/ProfilePage.jsx
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { FaArrowLeft } from "@react-icons/all-files/fa/FaArrowLeft";
-import { FaUser } from "@react-icons/all-files/fa/FaUser";
-import { FaEnvelope } from "@react-icons/all-files/fa/FaEnvelope";
-import { FaLock } from "@react-icons/all-files/fa/FaLock";
-import { FaCamera } from "@react-icons/all-files/fa/FaCamera";
-import { FaUniversity } from "@react-icons/all-files/fa/FaUniversity";
-import { FaIdCard } from "@react-icons/all-files/fa/FaIdCard";
-import { FaGraduationCap } from "@react-icons/all-files/fa/FaGraduationCap";
-import { FaCheckCircle } from "@react-icons/all-files/fa/FaCheckCircle";
-import { FaTimes } from "@react-icons/all-files/fa/FaTimes";
-import { FaSync } from "@react-icons/all-files/fa/FaSync";
-import { FaChartLine } from "@react-icons/all-files/fa/FaChartLine";
-import { FaBook } from "@react-icons/all-files/fa/FaBook";
-import { FaExternalLinkAlt } from "@react-icons/all-files/fa/FaExternalLinkAlt";
-import { FaCog } from "@react-icons/all-files/fa/FaCog";
-import { FaShieldAlt } from "@react-icons/all-files/fa/FaShieldAlt";
-import { FaClock } from "@react-icons/all-files/fa/FaClock";
-import { FaExclamationTriangle } from "@react-icons/all-files/fa/FaExclamationTriangle";
+import { FaArrowLeft } from "react-icons/fa";
+import { FaUser } from "react-icons/fa";
+import { FaEnvelope } from "react-icons/fa";
+import { FaLock } from "react-icons/fa";
+import { FaCamera } from "react-icons/fa";
+import { FaUniversity } from "react-icons/fa";
+import { FaIdCard } from "react-icons/fa";
+import { FaGraduationCap } from "react-icons/fa";
+import { FaCheckCircle } from "react-icons/fa";
+import { FaTimes } from "react-icons/fa";
+import { FaSync } from "react-icons/fa";
+import { FaChartLine } from "react-icons/fa";
+import { FaBook } from "react-icons/fa";
+import { FaExternalLinkAlt } from "react-icons/fa";
+import { FaCog } from "react-icons/fa";
+import { FaShieldAlt } from "react-icons/fa";
+import { FaClock } from "react-icons/fa";
+import { FaExclamationTriangle } from "react-icons/fa";
 import "./ProfilePage.css";
 
 import { getApiBase } from "../lib/apiBase";
 const API_BASE = getApiBase();
+const ADVISING_FLOW_STORAGE_KEY = "chat_advising_flow_state";
+const ADVISING_LOCAL_ANSWERS_STORAGE_KEY = "chat_advising_local_answers";
+
+const getAdvisingChecklistStatus = () => {
+  let localAnswers = {};
+  try {
+    localAnswers = JSON.parse(localStorage.getItem(ADVISING_LOCAL_ANSWERS_STORAGE_KEY) || "{}");
+  } catch {
+    localAnswers = {};
+  }
+
+  const flowStep = localStorage.getItem(ADVISING_FLOW_STORAGE_KEY) || "step1_check";
+  const stepOneCompleted = localAnswers["Ready for Step Two"] === "Yes" || flowStep === "step2_ready";
+  const stepTwoCompleted = localAnswers["Advisor-ready draft confirmed"] === "Yes";
+
+  return {
+    flowStep,
+    localAnswers,
+    stepOneCompleted,
+    stepTwoCompleted,
+    updatedAt: new Date().toISOString(),
+  };
+};
 
 export default function ProfilePage({ userEmail, onLogout }) {
   const navigate = useNavigate();
-  const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [pendingResearch, setPendingResearch] = useState(0);
+  const [advisingChecklist, setAdvisingChecklist] = useState(getAdvisingChecklistStatus);
 
   // Canvas State
   const [showCanvasModal, setShowCanvasModal] = useState(false);
@@ -76,6 +99,10 @@ export default function ProfilePage({ userEmail, onLogout }) {
   useEffect(() => {
     fetchProfile();
     fetchDegreeWorksData();
+    const refreshAdvisingChecklist = () => setAdvisingChecklist(getAdvisingChecklistStatus());
+    refreshAdvisingChecklist();
+    window.addEventListener("focus", refreshAdvisingChecklist);
+    window.addEventListener("storage", refreshAdvisingChecklist);
     // Fetch Canvas connection status
     const token = localStorage.getItem("token");
     if (token) {
@@ -96,7 +123,23 @@ export default function ProfilePage({ userEmail, onLogout }) {
         .then(d => { if (d) setPendingResearch(d.pending_suggestions || 0); })
         .catch(() => {});
     }
+
+    return () => {
+      window.removeEventListener("focus", refreshAdvisingChecklist);
+      window.removeEventListener("storage", refreshAdvisingChecklist);
+    };
   }, []);
+
+  const handleResetAdvisingForms = () => {
+    if (!window.confirm("Reset Step One and Step Two advising forms back to incomplete? This will clear locally captured form answers, but will not change your saved profile, DegreeWorks, or curriculum course statuses.")) {
+      return;
+    }
+
+    localStorage.setItem(ADVISING_FLOW_STORAGE_KEY, "step1_check");
+    localStorage.removeItem(ADVISING_LOCAL_ANSWERS_STORAGE_KEY);
+    setAdvisingChecklist(getAdvisingChecklistStatus());
+    setMessage({ type: "success", text: "Advising forms reset. Step One and Step Two are now marked incomplete." });
+  };
 
   const fetchProfile = async () => {
   try {
@@ -178,6 +221,20 @@ export default function ProfilePage({ userEmail, onLogout }) {
     setLoading(true);
     setMessage({ type: "", text: "" });
 
+    const trimmedStudentId = (profile.studentId || "").trim();
+    if (trimmedStudentId && (!/^\d{8}$/.test(trimmedStudentId) || !trimmedStudentId.startsWith("00"))) {
+      setLoading(false);
+      setMessage({ type: "error", text: "Student ID must be 8 digits and begin with 00." });
+      return;
+    }
+
+    const trimmedEmail = (profile.email || "").trim().toLowerCase();
+    if (!/^[^\s@]+@morgan\.edu$/.test(trimmedEmail)) {
+      setLoading(false);
+      setMessage({ type: "error", text: "Email must be a valid @morgan.edu address." });
+      return;
+    }
+
     try {
       const token = localStorage.getItem("token");
       const response = await fetch(`${API_BASE}/api/profile`, {
@@ -187,15 +244,15 @@ export default function ProfilePage({ userEmail, onLogout }) {
           "Authorization": `Bearer ${token}`
         },
         body: JSON.stringify({
-          name: profile.name,
-          studentId: profile.studentId,
+          email: trimmedEmail,
+          name: (profile.name || "").trim(),
+          studentId: trimmedStudentId,
           major: profile.major
         })
       });
 
       if (response.ok) {
         setMessage({ type: "success", text: "Profile updated successfully!" });
-        setIsEditing(false);
         fetchProfile();
       } else {
         const error = await response.json();
@@ -552,14 +609,9 @@ export default function ProfilePage({ userEmail, onLogout }) {
         <div className="profile-section">
           <div className="section-header">
             <h3>Personal Information</h3>
-            {!isEditing && (
-              <button className="edit-btn" onClick={() => setIsEditing(true)}>
-                Edit
-              </button>
-            )}
           </div>
 
-          <form onSubmit={handleUpdateProfile}>
+          <form id="profile-form" onSubmit={handleUpdateProfile}>
             <div className="form-group">
               <label>
                 <FaUser /> Full Name
@@ -568,7 +620,6 @@ export default function ProfilePage({ userEmail, onLogout }) {
                 type="text"
                 value={profile.name || ""}
                 onChange={(e) => setProfile({ ...profile, name: e.target.value })}
-                disabled={!isEditing}
                 placeholder="Enter your full name"
               />
             </div>
@@ -579,9 +630,9 @@ export default function ProfilePage({ userEmail, onLogout }) {
               </label>
               <input
                 type="email"
-                value={profile.email}
-                disabled
-                className="disabled-input"
+                value={profile.email || ""}
+                onChange={(e) => setProfile({ ...profile, email: e.target.value })}
+                placeholder="name@morgan.edu"
               />
             </div>
 
@@ -599,7 +650,6 @@ export default function ProfilePage({ userEmail, onLogout }) {
                   const val = e.target.value.replace(/\D/g, '');
                   setProfile({ ...profile, studentId: val });
                 }}
-                disabled={!isEditing}
                 placeholder="e.g. 00367844"
               />
             </div>
@@ -611,7 +661,6 @@ export default function ProfilePage({ userEmail, onLogout }) {
               <select
                 value={profile.major || "Computer Science"}
                 onChange={(e) => setProfile({ ...profile, major: e.target.value })}
-                disabled={!isEditing}
               >
                 <option value="Computer Science">Computer Science</option>
                 <option value="Information Systems">Information Systems</option>
@@ -621,24 +670,64 @@ export default function ProfilePage({ userEmail, onLogout }) {
               </select>
             </div>
 
-            {isEditing && (
-              <div className="form-actions">
-                <button type="submit" className="save-btn" disabled={loading}>
-                  {loading ? "Saving..." : "Save Changes"}
-                </button>
-                <button 
-                  type="button" 
-                  className="cancel-btn" 
-                  onClick={() => {
-                    setIsEditing(false);
-                    fetchProfile();
-                  }}
-                >
-                  Cancel
-                </button>
-              </div>
-            )}
+            <div className="form-actions">
+              <button type="submit" className="save-btn" disabled={loading}>
+                {loading ? "Saving..." : "Save Profile"}
+              </button>
+              <button
+                type="button"
+                className="cancel-btn"
+                onClick={fetchProfile}
+                disabled={loading}
+              >
+                Reset
+              </button>
+            </div>
           </form>
+        </div>
+
+        {/* Advising Checklist */}
+        <div className="profile-section advising-checklist-section">
+          <div className="section-header">
+            <h3><FaBook /> Advising Checklist</h3>
+            <button
+              type="button"
+              className="disconnect-btn"
+              onClick={handleResetAdvisingForms}
+            >
+              Reset Forms
+            </button>
+          </div>
+
+          <div className="advising-checklist">
+            <div className={`advising-checklist-item ${advisingChecklist.stepOneCompleted ? "complete" : "incomplete"}`}>
+              <span className="advising-checklist-icon">
+                {advisingChecklist.stepOneCompleted ? <FaCheckCircle /> : <FaClock />}
+              </span>
+              <div>
+                <p className="advising-checklist-title">Step One: Internship, Research, Job Experience Form</p>
+                <p className="advising-checklist-status">
+                  {advisingChecklist.stepOneCompleted ? "Completed in Advising Mode" : "Incomplete"}
+                </p>
+              </div>
+            </div>
+
+            <div className={`advising-checklist-item ${advisingChecklist.stepTwoCompleted ? "complete" : "incomplete"}`}>
+              <span className="advising-checklist-icon">
+                {advisingChecklist.stepTwoCompleted ? <FaCheckCircle /> : <FaClock />}
+              </span>
+              <div>
+                <p className="advising-checklist-title">Step Two: Academic Advisement Form</p>
+                <p className="advising-checklist-status">
+                  {advisingChecklist.stepTwoCompleted ? "Completed and confirmed for advisor review" : "Incomplete"}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <p className="advising-checklist-note">
+            Resetting forms clears the captured advising answers and sends Advising Mode back to Step One. Your profile, DegreeWorks data, and curriculum course statuses stay intact.
+          </p>
         </div>
 
         {/* Password Section */}

@@ -296,23 +296,21 @@ All previous versions are accessible via git tags: `git checkout v3.0-multi-agen
 
 ## Local Development
 
-```bash
+```powershell
 # Clone
-git clone https://github.com/theaayushstha1/cs-chatbot-morganstate.git
-cd cs-chatbot-morganstate
+git clone <repo-url>
+cd cs-navigator
 
 # Copy and fill environment variables
-cp .env.example .env
+Copy-Item .env.example .env
 
-# Start ADK Agent (port 8080)
-cd adk_agent && pip install google-adk && adk web . --port 8080
-
-# Start Backend (port 5001)
-cd backend && pip install -r requirements.txt && uvicorn main:app --host 127.0.0.1 --port 5001
-
-# Start Frontend (port 3000)
-cd frontend && npm install && npm run dev -- --port 3000
+# Windows local startup
+./start-local.ps1
 ```
+
+If you want to stop the local processes later, run `./stop-local.ps1`.
+
+The local startup script uses the checked-in ADK agent, the backend on `http://127.0.0.1:5001`, and the frontend on `http://127.0.0.1:3001` by default.
 
 ---
 

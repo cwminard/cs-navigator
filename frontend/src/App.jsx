@@ -25,6 +25,57 @@ import "./index.css";
 
 import { getApiBase } from "./lib/apiBase";
 const API_BASE = getApiBase();
+
+const DEFAULT_CHAT_MODE = "general";
+
+function inferSessionMode(session) {
+  if (!session) return DEFAULT_CHAT_MODE;
+  if (session.mode) return session.mode;
+  if (typeof session.id === "string" && session.id.startsWith("advising-")) {
+    return "advising";
+  }
+  return DEFAULT_CHAT_MODE;
+}
+
+function createChatSession(mode = DEFAULT_CHAT_MODE) {
+  return {
+    id: `${mode}-${Date.now()}`,
+    title: mode === "advising" ? "Advising Chat" : "New Chat",
+    messages: [],
+    pinned: false,
+    archived: false,
+    mode,
+  };
+}
+
+function normalizeChatSession(session) {
+  return {
+    ...session,
+    pinned: session.pinned || false,
+    archived: session.archived || false,
+    mode: inferSessionMode(session),
+  };
+}
+
+function getLastSessionForMode(sessions, mode) {
+  for (let i = sessions.length - 1; i >= 0; i -= 1) {
+    if (inferSessionMode(sessions[i]) === mode) {
+      return sessions[i];
+    }
+  }
+  return null;
+}
+
+function ensureSessionForMode(sessions, mode) {
+  const existing = getLastSessionForMode(sessions, mode);
+  if (existing) {
+    return { sessions, session: existing };
+  }
+
+  const created = createChatSession(mode);
+  return { sessions: [...sessions, created], session: created };
+}
+
 function parseJwt(token) {
   try {
     const b64 = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
@@ -43,18 +94,21 @@ function parseJwt(token) {
 }
 
 function RequireAuth({ children }) {
-  return localStorage.getItem("token") 
-    ? children 
-    : <Navigate to="/login" replace />;
+  if (!localStorage.getItem("token")) {
+    return <Navigate to="/login" replace />;
+  }
+  return children;
 }
 
 function ChatLayout({
   sessions,
   activeId,
+  activeMode,
   onNew,
   onSelect,
   onDelete,
   onSessionChange,
+  onModeChange,
   onLogout,
   userEmail,
   onPin,
@@ -87,7 +141,9 @@ function ChatLayout({
         key={activeId}
         sessionId={activeId} 
         initialMessages={activeSession.messages}
+        mode={activeMode}
         onSessionChange={onSessionChange}
+        onModeChange={onModeChange}
       />
     </div>
   );
@@ -189,20 +245,21 @@ export default function App() {
 
   // chat‐session state
   const [sessions, setSessions] = useState(() => {
-    // Try to load from local storage first for immediate UI
-    const saved = JSON.parse(localStorage.getItem("chat_sessions") || "[]");
-    if (!saved.length) {
-      const id = Date.now().toString();
-      return [{ id, title: "New Chat", messages: [], pinned: false, archived: false }];
-    }
-    return saved.map(s => ({
-      ...s,
-      pinned: s.pinned || false,
-      archived: s.archived || false
-    }));
+    const saved = JSON.parse(localStorage.getItem("chat_sessions") || "[]").map(normalizeChatSession);
+    const preferredMode = localStorage.getItem("chat_mode") || DEFAULT_CHAT_MODE;
+    const initialSessions = saved.length ? saved : [createChatSession(DEFAULT_CHAT_MODE)];
+    return ensureSessionForMode(initialSessions, preferredMode).sessions;
   });
-  
-  const [activeId, setActiveId] = useState(sessions[0]?.id || "");
+
+  const [activeMode, setActiveMode] = useState(() => localStorage.getItem("chat_mode") || DEFAULT_CHAT_MODE);
+
+  const [activeId, setActiveId] = useState(() => {
+    const saved = JSON.parse(localStorage.getItem("chat_sessions") || "[]").map(normalizeChatSession);
+    const preferredMode = localStorage.getItem("chat_mode") || DEFAULT_CHAT_MODE;
+    const initialSessions = saved.length ? saved : [createChatSession(DEFAULT_CHAT_MODE)];
+    const { session } = ensureSessionForMode(initialSessions, preferredMode);
+    return session.id;
+  });
   
   useEffect(() => {
     localStorage.setItem("chat_sessions", JSON.stringify(sessions));
@@ -276,23 +333,42 @@ export default function App() {
 
   // FIXED: session handlers
   const handleNew = () => {
-    const id = Date.now().toString();
-    const newChat = { id, title: "New Chat", messages: [], pinned: false, archived: false };
+    const newChat = createChatSession(activeMode);
     setSessions((prev) => [...prev, newChat]); // Append to end
-    setActiveId(id);
+    setActiveId(newChat.id);
     navigate("/chat");
   };
 
   const handleSelect = (id) => {
+    const session = sessions.find((s) => s.id === id);
     setActiveId(id);
+    setActiveMode(inferSessionMode(session));
     navigate("/chat");
+  };
+
+  const handleModeChange = (mode) => {
+    const existing = getLastSessionForMode(sessions, mode);
+    if (existing) {
+      setActiveMode(mode);
+      setActiveId(existing.id);
+      return;
+    }
+
+    const newChat = createChatSession(mode);
+    setSessions((prev) => [...prev, newChat]);
+    setActiveMode(mode);
+    setActiveId(newChat.id);
   };
   
   const handleDelete = async (id) => {
     if (!window.confirm("Delete this chat permanently?")) return;
     const next = sessions.filter((s) => s.id !== id);
     setSessions(next);
-    if (activeId === id) setActiveId(next[0]?.id || "");
+    if (activeId === id) {
+      const fallback = getLastSessionForMode(next, activeMode) || next[0] || null;
+      setActiveId(fallback?.id || "");
+      setActiveMode(inferSessionMode(fallback));
+    }
     try {
       await fetch(`${API_BASE}/api/sessions/${id}`, {
         method: "DELETE",
@@ -336,14 +412,15 @@ export default function App() {
 
   // Archive handler
   const handleArchive = (id) => {
-    setSessions((prev) =>
-      prev.map((s) =>
-        s.id === id ? { ...s, archived: !s.archived } : s
-      )
+    const next = sessions.map((s) =>
+      s.id === id ? { ...s, archived: !s.archived } : s
     );
+    setSessions(next);
     if (id === activeId) {
-      const remaining = sessions.filter(s => s.id !== id && !s.archived);
-      setActiveId(remaining[0]?.id || "");
+      const remaining = next.filter((s) => !s.archived && s.id !== id);
+      const fallback = getLastSessionForMode(remaining, activeMode) || remaining[0] || null;
+      setActiveId(fallback?.id || "");
+      setActiveMode(inferSessionMode(fallback));
     }
   };
 
@@ -372,10 +449,11 @@ export default function App() {
     localStorage.removeItem("token");
     localStorage.removeItem("chat_sessions");
     // Clear UI and reset to a fresh chat
-    const freshId = Date.now().toString();
-    setSessions([{ id: freshId, title: "New Chat", messages: [], pinned: false, archived: false }]);
-    setActiveId(freshId);
-    navigate("/login", { replace: true });
+    const freshSession = createChatSession(DEFAULT_CHAT_MODE);
+    setSessions([freshSession]);
+    setActiveMode(DEFAULT_CHAT_MODE);
+    setActiveId(freshSession.id);
+    navigate("/chat", { replace: true });
   };
 
   // Extract user email from token
@@ -404,24 +482,15 @@ export default function App() {
         {/* public */}
         <Route
           path="/signup"
-          element={
-            <SignUp onRegistered={() => navigate("/login", { replace: true })} />
-          }
+          element={<Navigate to="/" replace />}
         />
         <Route
           path="/login"
-          element={
-            <Login
-              onLoggedIn={(tk) => {
-                setToken(tk);
-                navigate("/chat", { replace: true });
-              }}
-            />
-          }
+          element={token ? <Navigate to="/chat" replace /> : <Login onLoggedIn={setToken} />}
         />
 
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/forgot-password" element={<Navigate to="/login" replace />} />
+        <Route path="/reset-password" element={<Navigate to="/login" replace />} />
 
         {/* public: guest trial chat */}
         <Route
@@ -432,7 +501,7 @@ export default function App() {
         {/* root redirects to /trychat or /chat based on auth */}
         <Route
           path="/"
-          element={<Navigate to={token ? "/chat" : "/trychat"} replace />}
+          element={token ? <Navigate to="/chat" replace /> : <LandingPage />}
         />
 
         {/* protected: chat */}
@@ -443,10 +512,12 @@ export default function App() {
               <ChatLayout
                 sessions={sessions}
                 activeId={activeId}
+                activeMode={activeMode}
                 onNew={handleNew}
                 onSelect={handleSelect}
                 onDelete={handleDelete}
                 onSessionChange={handleUpdateSession}
+                onModeChange={handleModeChange}
                 onLogout={handleLogout}
                 userEmail={userEmail}
                 onPin={handlePin}
@@ -603,7 +674,7 @@ export default function App() {
         {/* fallback */}
         <Route
           path="*"
-          element={<Navigate to={token ? "/chat" : "/trychat"} replace />}
+          element={<Navigate to={token ? "/chat" : "/"} replace />}
         />
       </Routes>
     </>

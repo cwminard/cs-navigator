@@ -1,10 +1,10 @@
 import { Command } from 'cmdk';
-import { FaPlus } from "@react-icons/all-files/fa/FaPlus";
-import { FaMoon } from "@react-icons/all-files/fa/FaMoon";
-import { FaSun } from "@react-icons/all-files/fa/FaSun";
-import { FaUser } from "@react-icons/all-files/fa/FaUser";
-import { FaBook } from "@react-icons/all-files/fa/FaBook";
-import { FaCog } from "@react-icons/all-files/fa/FaCog";
+import { FaPlus } from "react-icons/fa";
+import { FaMoon } from "react-icons/fa";
+import { FaSun } from "react-icons/fa";
+import { FaUser } from "react-icons/fa";
+import { FaBook } from "react-icons/fa";
+import { FaCog } from "react-icons/fa";
 import './CommandPalette.css';
 
 export default function CommandPalette({

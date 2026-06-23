@@ -9,8 +9,9 @@ from fastapi import APIRouter, HTTPException, Depends, Request, status
 from sqlalchemy.orm import Session
 
 from deps import get_db, RegisterRequest, LoginRequest
+from dummy_students import authenticate_dummy_student, list_dummy_students
 from models import User
-from security import hash_password, verify_password, create_access_token
+from security import hash_password, create_access_token
 
 router = APIRouter(tags=["auth"])
 
@@ -116,19 +117,25 @@ async def resend_verification(request: Request, db: Session = Depends(get_db)):
 # POST /api/login
 # ---------------------------------------------------------------------------
 @router.post("/api/login")
-def login(req: LoginRequest, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.email == req.email).first()
-    if not user or not verify_password(req.password, user.password_hash):
-        raise HTTPException(status_code=401, detail="Invalid credentials")
+def login(req: LoginRequest):
+    dummy_user = authenticate_dummy_student(req.email, req.password)
+    if not dummy_user:
+        raise HTTPException(status_code=401, detail="Invalid dummy student credentials")
 
-    # Require email verification (skip for admins and existing test accounts)
-    if not getattr(user, "email_verified", True) and user.role != "admin":
-        raise HTTPException(
-            status_code=403,
-            detail="Please verify your email first. Check your inbox for the verification link.",
-        )
+    return {
+        "access_token": create_access_token(
+            {
+                "user_id": dummy_user["user_id"],
+                "role": dummy_user["role"],
+                "email": dummy_user["email"],
+                "dummy": True,
+            }
+        ),
+        "token_type": "bearer",
+        "student": dummy_user,
+    }
 
-    token = create_access_token(
-        {"user_id": user.id, "role": user.role, "email": user.email}
-    )
-    return {"access_token": token, "token_type": "bearer"}
+
+@router.get("/api/dummy-students")
+def get_dummy_students():
+    return {"students": list_dummy_students()}

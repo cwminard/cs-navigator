@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { FaArrowLeft } from "@react-icons/all-files/fa/FaArrowLeft";
-import { FaSearch } from "@react-icons/all-files/fa/FaSearch";
-import { FaFilter } from "@react-icons/all-files/fa/FaFilter";
-import { FaBook } from "@react-icons/all-files/fa/FaBook";
-import { FaGraduationCap } from "@react-icons/all-files/fa/FaGraduationCap";
-import { FaSpinner } from "@react-icons/all-files/fa/FaSpinner";
-import { FaCheckCircle } from "@react-icons/all-files/fa/FaCheckCircle";
-import { FaClock } from "@react-icons/all-files/fa/FaClock";
-import { FaListAlt } from "@react-icons/all-files/fa/FaListAlt";
-import { FaChartLine } from "@react-icons/all-files/fa/FaChartLine";
-import { FaStar } from "@react-icons/all-files/fa/FaStar";
+import { FaArrowLeft } from "react-icons/fa";
+import { FaSearch } from "react-icons/fa";
+import { FaFilter } from "react-icons/fa";
+import { FaBook } from "react-icons/fa";
+import { FaGraduationCap } from "react-icons/fa";
+import { FaSpinner } from "react-icons/fa";
+import { FaCheckCircle } from "react-icons/fa";
+import { FaClock } from "react-icons/fa";
+import { FaListAlt } from "react-icons/fa";
+import { FaChartLine } from "react-icons/fa";
+import { FaStar } from "react-icons/fa";
 import "./CurriculumPage.css";
 
 import { getApiBase } from "../lib/apiBase";
@@ -34,12 +34,22 @@ const getGradeColor = (grade) => {
 
 // Category order for sorting
 const categoryOrder = {
-  "Supporting": 1,
-  "Required": 2,
-  "Group A Elective": 3,
-  "Group B Elective": 4,
-  "Group C Elective": 5,
-  "Group D Elective": 6
+  "General Education - IM": 1,
+  "General Education - EC": 2,
+  "General Education - CT": 3,
+  "General Education - MQ": 4,
+  "General Education - AH": 5,
+  "General Education - BP": 6,
+  "General Education - SB": 7,
+  "General Education - Health/PE": 8,
+  "General Education - CI": 9,
+  "University Requirements": 10,
+  "Supporting": 11,
+  "Required": 12,
+  "Group A Elective": 13,
+  "Group B Elective": 14,
+  "Group C Elective": 15,
+  "Group D Elective": 16
 };
 
 export default function CurriculumPage() {
@@ -53,6 +63,36 @@ export default function CurriculumPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [activeTab, setActiveTab] = useState("all");
+  const [manualStatuses, setManualStatuses] = useState({});
+
+  // Load manual course statuses from localStorage on mount
+  useEffect(() => {
+    const raw = localStorage.getItem('curriculum_course_statuses');
+    if (raw) {
+      try {
+        setManualStatuses(JSON.parse(raw));
+      } catch (e) {
+        console.error('Failed to parse curriculum_course_statuses:', e);
+      }
+    }
+  }, []);
+
+  // Toggle course status (pending -> in-progress -> completed -> pending)
+  const toggleCourseStatus = (courseCode) => {
+    setManualStatuses(prev => {
+      const current = prev[courseCode] || 'pending';
+      const statusCycle = ['pending', 'in-progress', 'completed'];
+      const currentIndex = statusCycle.indexOf(current);
+      const nextStatus = statusCycle[(currentIndex + 1) % statusCycle.length];
+      const next = { ...prev, [courseCode]: nextStatus };
+      try {
+        localStorage.setItem('curriculum_course_statuses', JSON.stringify(next));
+      } catch (e) {
+        console.error('Failed to save curriculum_course_statuses:', e);
+      }
+      return next;
+    });
+  };
 
   // Fetch curriculum data and DegreeWorks data
   useEffect(() => {
@@ -160,14 +200,27 @@ export default function CurriculumPage() {
   // Enhance curriculum data with completion status
   const enhancedCurriculum = curriculumData.map(course => {
     const normalizedCode = course.code.toUpperCase().replace(/\s+/g, " ").trim();
-    const completed = completedCourseMap.get(normalizedCode);
-    const inProgress = inProgressCourseMap.get(normalizedCode);
+    const manualStatus = manualStatuses[course.code];
+    
+    // Use manual override if set, otherwise use DegreeWorks data
+    let status, grade, semester;
+    if (manualStatus) {
+      status = manualStatus;
+      grade = null;
+      semester = null;
+    } else {
+      const completed = completedCourseMap.get(normalizedCode);
+      const inProgress = inProgressCourseMap.get(normalizedCode);
+      status = completed ? "completed" : inProgress ? "in-progress" : "pending";
+      grade = completed?.grade || null;
+      semester = completed?.semester || inProgress?.semester || null;
+    }
 
     return {
       ...course,
-      status: completed ? "completed" : inProgress ? "in-progress" : "pending",
-      grade: completed?.grade || null,
-      semester: completed?.semester || inProgress?.semester || null
+      status,
+      grade,
+      semester
     };
   });
 
@@ -179,7 +232,9 @@ export default function CurriculumPage() {
     const matchesSearch =
       course.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
       course.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      course.prereq.toLowerCase().includes(searchQuery.toLowerCase());
+      course.prereq.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (course.note || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (course.offered || "").toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesCategory = selectedCategory === "All" || course.category === selectedCategory;
 
@@ -197,15 +252,15 @@ export default function CurriculumPage() {
   const pendingCount = enhancedCurriculum.filter(c => c.status === "pending").length;
 
   // Calculate credits
-  const csCreditsRequired = degreeInfo.cs_core_credits || 76;
+  const degreeCreditsRequired = degreeInfo.total_credits || 120;
   const completedCredits = enhancedCurriculum
     .filter(c => c.status === "completed")
     .reduce((sum, c) => sum + c.credits, 0);
   const inProgressCredits = enhancedCurriculum
     .filter(c => c.status === "in-progress")
     .reduce((sum, c) => sum + c.credits, 0);
-  const progressPercentage = csCreditsRequired > 0
-    ? Math.min(Math.round((completedCredits / csCreditsRequired) * 100), 100)
+  const progressPercentage = degreeCreditsRequired > 0
+    ? Math.min(Math.round((completedCredits / degreeCreditsRequired) * 100), 100)
     : 0;
 
   // Group courses by category for display
@@ -219,6 +274,16 @@ export default function CurriculumPage() {
 
   // Category descriptions
   const categoryDescriptions = {
+    "General Education - IM": "Information, Technological and Media Literacy: complete 3 credits from an approved option or the computer literacy course required by the major",
+    "General Education - EC": "English Composition: complete Part A and Part B for 6 credits with required sequence grades",
+    "General Education - CT": "Critical Thinking: complete one approved 3-credit course",
+    "General Education - MQ": "Mathematics and Quantitative Reasoning: complete MATH 109 or above; CS majors typically satisfy this through MATH 241",
+    "General Education - AH": "Arts and Humanities: complete 6 credits from two different disciplines; Foreign Language 102 or higher is also an approved option",
+    "General Education - BP": "Biological and Physical Sciences: complete 7 credits across two courses; at least one must be lab-based",
+    "General Education - SB": "Social and Behavioral Sciences: complete 6 credits from two different disciplines",
+    "General Education - Health/PE": "Health and Healthful Living: complete one approved 3-credit HH option",
+    "General Education - CI": "Contemporary and Global Issues, Ideas and Values: complete one approved 3-credit option",
+    "University Requirements": "Complete 2 university requirement credits: one activity/financial literacy option and one school orientation course",
     "Supporting": "Required mathematics and ethics courses (15 credits)",
     "Required": "Core computer science courses required for all majors (35 credits)",
     "Group A Elective": electiveRequirements.group_a?.description || "Choose 3 courses",
@@ -254,13 +319,13 @@ export default function CurriculumPage() {
             <div className="progress-info">
               <FaChartLine size={24} className="progress-icon" />
               <div>
-                <h2>CS Major Progress</h2>
-                <p>Supporting + Major Requirements ({csCreditsRequired} credits)</p>
+                <h2>Degree Progress</h2>
+                <p>General Education + University + Supporting + Major Requirements ({degreeCreditsRequired} credits)</p>
               </div>
             </div>
             <div className="progress-stats">
               <span className="credits-text">
-                <strong>{completedCredits}</strong> / {csCreditsRequired} credits
+                <strong>{completedCredits}</strong> / {degreeCreditsRequired} credits
               </span>
               {degreeWorksData?.overall_gpa && (
                 <span className="gpa-badge">
@@ -329,9 +394,9 @@ export default function CurriculumPage() {
           <FaStar size={24} />
           <div>
             <div className="stat-number">
-              {curriculumData.filter(c => c.requirement_type === "required" || c.requirement_type === "supporting" || c.requirement_type === "elective").length}
+              {curriculumData.filter(c => c.requirement_type !== "other").length}
             </div>
-            <div className="stat-label">Total Degree Courses</div>
+            <div className="stat-label">Tracked Requirements</div>
           </div>
         </div>
         <div className="stat-card">
@@ -441,21 +506,34 @@ export default function CurriculumPage() {
                   {courses.map((course) => (
                     <tr key={course.code} className={`course-row ${course.status}`}>
                       <td className="course-status">
-                        {course.status === "completed" && (
-                          <span className="status-badge completed" title="Completed">
-                            <FaCheckCircle />
-                          </span>
-                        )}
-                        {course.status === "in-progress" && (
-                          <span className="status-badge in-progress" title="In Progress">
-                            <FaClock />
-                          </span>
-                        )}
-                        {course.status === "pending" && (
-                          <span className="status-badge pending" title="Not Started">
-                            <FaBook />
-                          </span>
-                        )}
+                        <button
+                          className="status-badge-btn"
+                          onClick={() => toggleCourseStatus(course.code)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              toggleCourseStatus(course.code);
+                            }
+                          }}
+                          title={`Click to toggle: ${course.status}`}
+                          aria-label={`Toggle status for ${course.code}: currently ${course.status}`}
+                        >
+                          {course.status === "completed" && (
+                            <span className="status-badge completed" title="Completed">
+                              <FaCheckCircle />
+                            </span>
+                          )}
+                          {course.status === "in-progress" && (
+                            <span className="status-badge in-progress" title="In Progress">
+                              <FaClock />
+                            </span>
+                          )}
+                          {course.status === "pending" && (
+                            <span className="status-badge pending" title="Not Started">
+                              <FaBook />
+                            </span>
+                          )}
+                        </button>
                       </td>
                       <td className="course-code">{course.code}</td>
                       <td className="course-name">

@@ -12,13 +12,13 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import dagre from "dagre";
-import { FaSync } from "@react-icons/all-files/fa/FaSync";
-import { FaExclamationTriangle } from "@react-icons/all-files/fa/FaExclamationTriangle";
-import { FaCheckCircle } from "@react-icons/all-files/fa/FaCheckCircle";
-import { FaTimes } from "@react-icons/all-files/fa/FaTimes";
-import { FaLock } from "@react-icons/all-files/fa/FaLock";
-import { FaUnlock } from "@react-icons/all-files/fa/FaUnlock";
-import { FaArrowRight } from "@react-icons/all-files/fa/FaArrowRight";
+import { FaSync } from "react-icons/fa";
+import { FaExclamationTriangle } from "react-icons/fa";
+import { FaCheckCircle } from "react-icons/fa";
+import { FaTimes } from "react-icons/fa";
+import { FaLock } from "react-icons/fa";
+import { FaUnlock } from "react-icons/fa";
+import { FaArrowRight } from "react-icons/fa";
 import { getApiBase } from "../lib/apiBase";
 import "./RippleEffect.css";
 

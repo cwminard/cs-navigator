@@ -134,6 +134,7 @@ def _extract_focus(user_query: str, bot_response: str) -> dict:
     # Cross-reference: if user asked about a person and bot answered about them
     if user_persons and bot_persons:
         # Check if any user person matches any bot person (by last name)
+    # Layer 2: Gemini LLM rewriter disabled. Deterministic layers + agent session context are sufficient.
         for up in user_persons:
             up_last = up.split()[-1].lower()
             for bp in bot_persons:
@@ -237,7 +238,7 @@ def rewrite_query(query: str, history: list[dict]) -> str:
     """Rewrite a follow-up query to be self-contained.
 
     Layer 1: Deterministic focus tracker (cross-references user query + bot response)
-    Layer 2: Gemini rewriter (fallback for cases regex can't handle)
+    Layer 2: Disabled. The ADK agent session context handles ambiguous follow-ups.
 
     Args:
         query: The user's current message
@@ -272,66 +273,6 @@ def rewrite_query(query: str, history: list[dict]) -> str:
         if focused:
             return focused
 
-    # Layer 2: LLM rewriter - only for very short ambiguous follow-ups.
-    # For 5+ word queries, the ADK agent has full session context and handles them fine.
-    # This saves ~200-400ms per follow-up by skipping the Gemini Flash call.
-    if len(query.split()) >= 5:
-        return query
-
-    client = _get_client()
-    if not client:
-        return query  # No LLM available, agent handles it with session context
-
-    recent = history[-3:]
-    ctx = ""
-    for h in recent:
-        ctx += f"Q: {h['user_query'][:100]}\nA: {h['bot_response'][:200]}\n"
-
-    try:
-        response = client.models.generate_content(
-            model="gemini-2.0-flash",
-            contents=(
-                "Rewrite the follow-up question to be self-contained by replacing pronouns and references "
-                "with the specific names/entities they refer to.\n\n"
-                "CRITICAL RULES:\n"
-                "1. Pronouns like 'he', 'she', 'they', 'it' refer to the entity in the MOST RECENT exchange.\n"
-                "2. If you are NOT SURE what the pronoun or reference refers to, return the ORIGINAL question "
-                "EXACTLY as written. Do NOT guess. The chatbot has full conversation history and will handle it.\n"
-                "3. 'tell me more' or 'explain more simply' -> return ORIGINAL unchanged. The chatbot already has context.\n"
-                "4. 'what about that class' without a clear specific class in recent history -> return ORIGINAL unchanged.\n"
-                "5. Generic follow-ups like 'what do I do first', 'thanks but thats not what i asked' -> return ORIGINAL unchanged.\n"
-                "6. ONLY rewrite when you can confidently replace a pronoun with a SPECIFIC named entity.\n\n"
-                f"Recent conversation:\n{ctx}\n"
-                f"Follow-up question: {query}\n"
-                "Rewritten question (return ONLY the rewritten question, nothing else):"
-            ),
-            config={"temperature": 0.0, "max_output_tokens": 100},
-        )
-        rewritten = response.text.strip().strip('"').strip("'")
-
-        if rewritten and 5 < len(rewritten) < 300:
-            # If the rewriter just returned the same thing, let the agent handle it
-            if rewritten.lower().strip("?. ") == query.lower().strip("?. "):
-                print(f"   [REWRITE] Unchanged -> agent will handle with session context")
-                return query
-            # Safety: verify rewrite didn't completely change the topic
-            # Extract key nouns/entities from both and check overlap
-            orig_words = set(re.findall(r'\b[a-z]{4,}\b', query.lower()))
-            new_words = set(re.findall(r'\b[a-z]{4,}\b', rewritten.lower()))
-            # Also check course codes
-            orig_codes = set(_COURSE_RE.findall(query.upper()))
-            new_codes = set(_COURSE_RE.findall(rewritten.upper()))
-            shared = orig_words & new_words
-            # If rewrite shares fewer than 2 content words AND no course codes match, reject it
-            if len(shared) < 2 and not (orig_codes & new_codes) and not orig_codes.issubset(new_codes):
-                print(f"   [REWRITE] Rejected (intent drift): '{query}' -> '{rewritten}' (shared: {shared})")
-                return query
-            print(f"   [REWRITE] '{query}' -> '{rewritten}'")
-            return rewritten
-
-    except Exception as e:
-        print(f"   [REWRITE] Failed ({type(e).__name__}: {e})")
-
-    # All layers failed -> pass original to agent. Agent has session history
-    # and will either answer from context or ask for clarification.
+    # Layer 2 disabled: pass original query through.
+    # The ADK agent already has session history and can resolve context itself.
     return query

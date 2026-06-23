@@ -1,8 +1,8 @@
 import React from "react";
-import { FaGraduationCap } from "@react-icons/all-files/fa/FaGraduationCap";
-import { FaBook } from "@react-icons/all-files/fa/FaBook";
-import { FaComments } from "@react-icons/all-files/fa/FaComments";
-import { FaShieldAlt } from "@react-icons/all-files/fa/FaShieldAlt";
+import { FaGraduationCap } from "react-icons/fa";
+import { FaBook } from "react-icons/fa";
+import { FaComments } from "react-icons/fa";
+import { FaShieldAlt } from "react-icons/fa";
 import "./auth.css";
 
 const features = [

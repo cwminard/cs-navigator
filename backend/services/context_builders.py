@@ -351,3 +351,50 @@ def build_conversation_context(history_dicts: list) -> str:
         ctx += f"Assistant: {h['bot_response']}\n"
     ctx += "\n"
     return ctx
+
+
+def build_curriculum_context(curriculum_data: dict) -> str:
+    """Build curriculum context string from student's curriculum status.
+    
+    Args:
+        curriculum_data: Dict with keys like {"COSC111": "completed", "COSC200": "in_progress", ...}
+    
+    Returns:
+        Formatted context string for injection into advisor agent.
+    """
+    if not curriculum_data:
+        return ""
+    
+    completed = []
+    in_progress = []
+    
+    for course_code, status in curriculum_data.items():
+        course_code = course_code.strip().upper()
+        status = (status or "").strip().lower()
+        
+        if status == "completed":
+            completed.append(course_code)
+        elif status == "in_progress":
+            in_progress.append(course_code)
+    
+    ctx = "\nSTUDENT CURRICULUM STATUS (from student profile):\n"
+    
+    if completed:
+        ctx += "COMPLETED COURSES (eligible to register for higher-level courses):\n"
+        ctx += ", ".join(sorted(completed)) + "\n\n"
+    
+    if in_progress:
+        ctx += "IN-PROGRESS COURSES (can count toward prerequisite satisfaction, but not yet final grade):\n"
+        ctx += ", ".join(sorted(in_progress)) + "\n\n"
+    
+    if not completed and not in_progress:
+        ctx += "(No courses recorded yet)\n\n"
+    
+    ctx += "CRITICAL FOR ADVISING:\n"
+    ctx += "- Curriculum is the ONLY authoritative source for classes the student has taken\n"
+    ctx += "- DO NOT reference DegreeWorks or WebSIS for class history\n"
+    ctx += "- In-progress courses satisfy prerequisites (student can enroll in courses requiring them)\n"
+    ctx += "- When recommending courses, check against BOTH completed and in-progress\n"
+    
+    return ctx
+

@@ -274,6 +274,74 @@
   background: var(--bg-secondary);
 }
 
+/* Advising Checklist */
+.advising-checklist-section .section-header h3 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.advising-checklist {
+  display: grid;
+  gap: 12px;
+}
+
+.advising-checklist-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-body);
+}
+
+.advising-checklist-item.complete {
+  border-color: rgba(34, 197, 94, 0.28);
+  background: rgba(34, 197, 94, 0.06);
+}
+
+.advising-checklist-item.incomplete {
+  border-color: rgba(245, 158, 11, 0.28);
+  background: rgba(245, 158, 11, 0.06);
+}
+
+.advising-checklist-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.advising-checklist-item.complete .advising-checklist-icon {
+  color: #16a34a;
+}
+
+.advising-checklist-item.incomplete .advising-checklist-icon {
+  color: #d97706;
+}
+
+.advising-checklist-title {
+  margin: 0 0 4px;
+  color: var(--text-main);
+  font-weight: 700;
+}
+
+.advising-checklist-status,
+.advising-checklist-note {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.advising-checklist-note {
+  margin-top: 14px;
+}
+
 /* Morgan Connection */
 .connected-status {
   display: flex;

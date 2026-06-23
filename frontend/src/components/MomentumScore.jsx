@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
-import { FaSync } from "@react-icons/all-files/fa/FaSync";
-import { FaArrowUp } from "@react-icons/all-files/fa/FaArrowUp";
-import { FaArrowDown } from "@react-icons/all-files/fa/FaArrowDown";
-import { FaMinus } from "@react-icons/all-files/fa/FaMinus";
+import { FaSync } from "react-icons/fa";
+import { FaArrowUp } from "react-icons/fa";
+import { FaArrowDown } from "react-icons/fa";
+import { FaMinus } from "react-icons/fa";
 import { getApiBase } from "../lib/apiBase";
 import "./MomentumScore.css";
 

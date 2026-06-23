@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { FaBook } from "@react-icons/all-files/fa/FaBook";
-import { FaExclamationTriangle } from "@react-icons/all-files/fa/FaExclamationTriangle";
-import { FaCheckCircle } from "@react-icons/all-files/fa/FaCheckCircle";
-import { FaClock } from "@react-icons/all-files/fa/FaClock";
-import { FaSync } from "@react-icons/all-files/fa/FaSync";
-import { FaCalendarAlt } from "@react-icons/all-files/fa/FaCalendarAlt";
-import { FaChartLine } from "@react-icons/all-files/fa/FaChartLine";
+import { FaBook } from "react-icons/fa";
+import { FaExclamationTriangle } from "react-icons/fa";
+import { FaCheckCircle } from "react-icons/fa";
+import { FaClock } from "react-icons/fa";
+import { FaSync } from "react-icons/fa";
+import { FaCalendarAlt } from "react-icons/fa";
+import { FaChartLine } from "react-icons/fa";
 import { getApiBase } from "../lib/apiBase";
 import MomentumScore from "./MomentumScore";
 import "./MyClassesPage.css";
@@ -70,6 +70,7 @@ export default function MyClassesPage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("overview");
+  const [statuses, setStatuses] = useState({});
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -80,6 +81,30 @@ export default function MyClassesPage() {
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
+
+  // Load persisted class statuses from localStorage
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('classes_status');
+      if (raw) setStatuses(JSON.parse(raw));
+    } catch (e) { /* ignore malformed storage */ }
+  }, []);
+
+  const persistStatuses = (next) => {
+    try { localStorage.setItem('classes_status', JSON.stringify(next)); } catch (e) {}
+  };
+
+  const cycleStatus = (course) => {
+    const code = cleanCode(course.code) || String(course.id);
+    const cur = statuses[code] || 'pending';
+    const order = ['pending','in-progress','completed'];
+    const next = order[(order.indexOf(cur) + 1) % order.length];
+    const updated = { ...statuses, [code]: next };
+    setStatuses(updated);
+    persistStatuses(updated);
+  };
+
+  const statusLabel = (course) => statuses[cleanCode(course.code) || String(course.id)] || 'pending';
 
   if (loading) return (
     <div className="mc"><div className="mc-center"><FaSync className="mc-spin" size={20} /><p>Loading Canvas...</p></div></div>
@@ -179,27 +204,40 @@ export default function MyClassesPage() {
           )}
 
           <div className="mc-grid">
-            {courses.map((c) => (
-              <div key={c.id} className="mc-card">
-                <div className="mc-card-top">
-                  <span className="mc-badge">{cleanCode(c.code)}</span>
+            {courses.map((c) => {
+              const s = statusLabel(c);
+              return (
+                <div
+                  key={c.id}
+                  className="mc-card mc-card-clickable"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => cycleStatus(c)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); cycleStatus(c); } }}
+                >
+                  <div className="mc-card-top">
+                    <span className="mc-badge">{cleanCode(c.code)}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span className={`mc-status-badge mc-status-${s.replace(/\s+/g,'-')}`}>{s === 'pending' ? 'Not Taken' : s === 'in-progress' ? 'In Progress' : 'Completed'}</span>
+                      {c.current_score != null && (
+                        <span className="mc-score" style={{ color: getScoreColor(c.current_score) }}>
+                          {c.current_score.toFixed(1)}%
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="mc-card-name">{cleanName(c.name)}</div>
                   {c.current_score != null && (
-                    <span className="mc-score" style={{ color: getScoreColor(c.current_score) }}>
-                      {c.current_score.toFixed(1)}%
-                    </span>
+                    <div className="mc-bar-wrap">
+                      <div className="mc-bar">
+                        <div className="mc-bar-fill" style={{ width: `${Math.min(c.current_score, 100)}%`, background: getScoreColor(c.current_score) }} />
+                      </div>
+                      <span className="mc-letter" style={{ color: getScoreColor(c.current_score) }}>{c.current_grade || getScoreLetter(c.current_score)}</span>
+                    </div>
                   )}
                 </div>
-                <div className="mc-card-name">{cleanName(c.name)}</div>
-                {c.current_score != null && (
-                  <div className="mc-bar-wrap">
-                    <div className="mc-bar">
-                      <div className="mc-bar-fill" style={{ width: `${Math.min(c.current_score, 100)}%`, background: getScoreColor(c.current_score) }} />
-                    </div>
-                    <span className="mc-letter" style={{ color: getScoreColor(c.current_score) }}>{c.current_grade || getScoreLetter(c.current_score)}</span>
-                  </div>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
         </section>
       )}

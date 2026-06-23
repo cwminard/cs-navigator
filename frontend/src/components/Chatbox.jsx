@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { toast } from 'sonner';
@@ -6,22 +6,22 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { motion, AnimatePresence } from 'framer-motion';
 
-import { FaMicrophone } from "@react-icons/all-files/fa/FaMicrophone";
-import { FaPaperclip } from "@react-icons/all-files/fa/FaPaperclip";
-import { FaVolumeUp } from "@react-icons/all-files/fa/FaVolumeUp";
-import { FaTimes } from "@react-icons/all-files/fa/FaTimes";
-import { FaStop } from "@react-icons/all-files/fa/FaStop";
-import { FaEllipsisV } from "@react-icons/all-files/fa/FaEllipsisV";
-import { FaThumbsUp } from "@react-icons/all-files/fa/FaThumbsUp";
-import { FaThumbsDown } from "@react-icons/all-files/fa/FaThumbsDown";
-import { FaFlag } from "@react-icons/all-files/fa/FaFlag";
+import { FaMicrophone } from "react-icons/fa";
+import { FaPaperclip } from "react-icons/fa";
+import { FaVolumeUp } from "react-icons/fa";
+import { FaTimes } from "react-icons/fa";
+import { FaStop } from "react-icons/fa";
+import { FaEllipsisV } from "react-icons/fa";
+import { FaThumbsUp } from "react-icons/fa";
+import { FaThumbsDown } from "react-icons/fa";
+import { FaFlag } from "react-icons/fa";
 import { BsSoundwave, BsArrowUpCircleFill } from "react-icons/bs";
 
 // 🔥 Icons for File Cards
-import { FaFile } from "@react-icons/all-files/fa/FaFile";
-import { FaFilePdf } from "@react-icons/all-files/fa/FaFilePdf";
-import { FaFileWord } from "@react-icons/all-files/fa/FaFileWord";
-import { FaFileImage } from "@react-icons/all-files/fa/FaFileImage";
+import { FaFile } from "react-icons/fa";
+import { FaFilePdf } from "react-icons/fa";
+import { FaFileWord } from "react-icons/fa";
+import { FaFileImage } from "react-icons/fa";
 
 import "./Chatbox.css";
 
@@ -39,6 +39,180 @@ const FEATURED_QUESTIONS = [
 
 import { getApiBase } from "../lib/apiBase";
 const API_BASE = getApiBase();
+const CHAT_MODEL = "inav-1.1";
+
+const CHAT_MODES = [
+  { id: "general", name: "iNav", desc: "General chatbot" },
+  { id: "advising", name: "Advising", desc: "Student advising" },
+];
+
+const ADVISING_STEP_ONE_URL = "https://example.com/internship-form";
+const ADVISING_STEP_ONE_TITLE = "Academic Year 2025/2026 Internship, Research, Job Experience Form";
+const ADVISING_FLOW_STORAGE_KEY = "chat_advising_flow_state";
+const ADVISING_LOCAL_ANSWERS_STORAGE_KEY = "chat_advising_local_answers";
+const CURRICULUM_STATUS_STORAGE_KEY = "curriculum_course_statuses";
+const STEP_ONE_STUDENT_FIELDS = [
+  "First Name",
+  "Last Name",
+  "Major",
+  "Email receipt",
+  "Gender",
+  "Transfer student status",
+  "SCMNS club or organization interests",
+  "Career interest",
+  "SCMNS graduate programs awareness",
+  "Campus research interest",
+  "Research presentations this academic year",
+  "Publication this academic year",
+  "Internship, research, or job participation in 2025/2026",
+  "Canvas assignment posting timeliness",
+  "Canvas grading before midterms timeliness",
+];
+
+const STEP_ONE_CONDITIONAL_SECTIONS = [
+  "If the student presented research: number of presentations, type, title, conference, location, and date for each presentation.",
+  "If the student had a publication: publication title, date, and location.",
+  "If the student participated in an internship, research, or job: experience type, mentor if research, sector, program or employer, address, title, education relevance, career relevance, and whether there was a second experience.",
+  "If the student did not apply for an internship, research, or job: why they did not apply.",
+];
+
+const ADVISING_STUDENT_FIELDS = [
+  "First Name",
+  "Last Name",
+  "SID",
+  "Major",
+  "Minor (if applicable)",
+  "MSU Email",
+  "Classification",
+  "Credits",
+  "Advisor",
+  "GPA",
+  "Graduation Date",
+  "Advisement Semester",
+  "Courses currently being pursued",
+  "Do you plan to work next semester?",
+  "Career Goals",
+  "Student selected courses",
+  "Do all selected courses fulfill outstanding curricular components?",
+  "Explanation for any non-curricular selected course",
+  "Student Submission Date",
+];
+
+const ADVISING_COURSE_SELECTION_GOALS = [
+  "Use completed and in-progress curriculum courses to determine prerequisite readiness.",
+  "Recommend next-semester courses that satisfy outstanding curriculum requirements whenever possible.",
+  "Align selected courses with the student's career goals, work plans, graduation timeline, GPA, and credit-load needs.",
+  "Flag any selected course that does not fulfill an outstanding curricular component and explain why it still makes sense.",
+  "Produce an advisor-ready summary with selected courses, rationale, prerequisite status, and approval notes.",
+];
+
+const hasProfileValue = (value) => {
+  if (value === null || value === undefined) return false;
+  if (typeof value === "string") return value.trim().length > 0;
+  return true;
+};
+
+const firstProfileValue = (...values) => values.find(hasProfileValue);
+
+const splitProfileName = (profile, degreeWorksProfile) => {
+  const fullName = firstProfileValue(profile?.name, degreeWorksProfile?.student_name);
+  if (!hasProfileValue(fullName)) return {};
+  const normalizedName = `${fullName}`.replace(/\s+/g, " ").trim();
+
+  if (normalizedName.includes(",")) {
+    const [lastNamePart, firstNamePart] = normalizedName.split(",", 2);
+    const firstName = firstNamePart?.trim().split(/\s+/)[0];
+    const lastName = lastNamePart?.trim();
+    return {
+      firstName: firstName || undefined,
+      lastName: lastName || undefined,
+    };
+  }
+
+  const nameParts = normalizedName.split(/\s+/);
+  return {
+    firstName: nameParts[0],
+    lastName: nameParts.length > 1 ? nameParts.slice(1).join(" ") : undefined,
+  };
+};
+
+const STEP_ONE_PROFILE_FIELD_EXTRACTORS = {
+  "First Name": (profile, degreeWorksProfile) => splitProfileName(profile, degreeWorksProfile).firstName,
+  "Last Name": (profile, degreeWorksProfile) => splitProfileName(profile, degreeWorksProfile).lastName,
+  "Major": (profile, degreeWorksProfile) => firstProfileValue(profile?.major, degreeWorksProfile?.degree_program),
+  "Email receipt": (profile) => firstProfileValue(profile?.email),
+};
+
+const ADVISING_PROFILE_FIELD_EXTRACTORS = {
+  "First Name": (profile, degreeWorksProfile) => splitProfileName(profile, degreeWorksProfile).firstName,
+  "Last Name": (profile, degreeWorksProfile) => splitProfileName(profile, degreeWorksProfile).lastName,
+  "SID": (profile, degreeWorksProfile) => firstProfileValue(profile?.studentId, degreeWorksProfile?.student_id),
+  "Major": (profile, degreeWorksProfile) => firstProfileValue(profile?.major, degreeWorksProfile?.degree_program),
+  "MSU Email": (profile) => firstProfileValue(profile?.email),
+  "Classification": (profile, degreeWorksProfile) => firstProfileValue(degreeWorksProfile?.classification),
+  "Credits": (profile, degreeWorksProfile) => firstProfileValue(degreeWorksProfile?.total_credits_earned),
+  "Advisor": (profile, degreeWorksProfile) => firstProfileValue(degreeWorksProfile?.advisor),
+  "GPA": (profile, degreeWorksProfile) => firstProfileValue(degreeWorksProfile?.overall_gpa),
+  "Courses currently being pursued": (profile, degreeWorksProfile, inProgress) => inProgress?.length ? inProgress : undefined,
+  "Student Submission Date": () => new Date().toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }),
+};
+
+const formatFieldList = (fields) => fields.length > 0 ? fields.join(", ") : "none";
+
+const formatAdvisingValue = (value) => {
+  if (Array.isArray(value)) return value.join(", ");
+  if (typeof value === "number") return Number.isInteger(value) ? `${value}` : value.toFixed(2);
+  return `${value}`.trim();
+};
+
+const sanitizeAssistantMessage = (text) => {
+  if (!text) return "";
+  return text
+    .replace(/\[YES\/NO_QUESTION\]:\s*/g, "")
+    .replace(/\[(?:STEP ONE FORM CONTEXT|ADVISING MODE CONTEXT)\]/g, "")
+    .replace(/^\s*(?:Known Step One values|Known advising values|Locally captured Step One\/Two answers|Student profile already has these fields|Only ask the student|Efficiency rule|Faculty advising rule|Prerequisite planning rule|Course selection goals):.*$/gmi, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+};
+
+const getVisibleUserMessage = (text) => {
+  if (!text) return "";
+  const hasHiddenContext = /\[(?:STEP ONE FORM CONTEXT|ADVISING MODE CONTEXT)\]/.test(text);
+  if (!hasHiddenContext) return sanitizeAssistantMessage(text);
+  const visibleTail = text.split(/\n\n/).pop() || text;
+  return sanitizeAssistantMessage(visibleTail);
+};
+
+const createMessageId = () => `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+const updateMessageById = (messages, messageId, patch) => (
+  messages.map((message) => (
+    message.id === messageId
+      ? { ...message, ...(typeof patch === "function" ? patch(message) : patch) }
+      : message
+  ))
+);
+
+const removeMessageById = (messages, messageId) => messages.filter((message) => message.id !== messageId);
+
+const buildBinaryQuestion = (questionText) => `[YES/NO_QUESTION]: ${questionText}`;
+
+const classifyAdvisingBinaryQuestion = (questionText) => {
+  const text = `${questionText || ""}`.toLowerCase();
+  if (text.includes("ready") && text.includes("step two")) return "ready_step_two";
+  if (text.includes("graduate program")) return "grad_program_awareness";
+  if (text.includes("campus research") || text.includes("conduct research")) return "campus_research_interest";
+  if (text.includes("research presentation") || text.includes("research presentations")) return "research_presentations";
+  if (text.includes("publication") || text.includes("publications")) return "publications";
+  if ((text.includes("apply") || text.includes("applied")) && (text.includes("not selected") || text.includes("weren't selected") || text.includes("were not selected"))) return "experience_applied_not_selected";
+  if ((text.includes("internship") || text.includes("job experience") || text.includes("research, or job")) && !text.includes("second")) return "experience_participation";
+  if (text.includes("second") && (text.includes("internship") || text.includes("research") || text.includes("job"))) return "second_experience";
+  if (text.includes("minor")) return "has_minor";
+  if (text.includes("work next semester")) return "work_next_semester";
+  if (text.includes("selected courses") && (text.includes("fulfill") || text.includes("outstanding curricular"))) return "selected_courses_curricular_fit";
+  if (text.includes("confirm") || text.includes("approval") || text.includes("submit")) return "confirm_advising_draft";
+  return null;
+};
 
 // Helper for icons
 const getFileIcon = (filename) => {
@@ -52,13 +226,15 @@ const getFileIcon = (filename) => {
   return <FaFile className="file-icon generic" />;
 };
 
-export default function Chatbox({ initialMessages = [], onSessionChange, sessionId }) {
+export default function Chatbox({ initialMessages = [], onSessionChange, sessionId, mode, onModeChange }) {
   // --- STATE ---
   const [messages, setMessages] = useState(initialMessages);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [userProfilePicture, setUserProfilePicture] = useState("/user_icon.webp");
+  const [userProfile, setUserProfile] = useState(null);
+  const [degreeWorksProfile, setDegreeWorksProfile] = useState(null);
 
   // 🔥 Staging State for File Uploads
   const [pendingFile, setPendingFile] = useState(null);
@@ -72,26 +248,151 @@ export default function Chatbox({ initialMessages = [], onSessionChange, session
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [voiceStatus, setVoiceStatus] = useState("idle"); // idle, listening, processing, speaking
 
-  // Model selector state
-  const [selectedModel, setSelectedModel] = useState("inav-1.1");
-  const [modelDropdownOpen, setModelDropdownOpen] = useState(false);
-  const modelDropdownRef = useRef(null);
+  // Mode selector state
+  const [selectedMode, setSelectedMode] = useState(() => mode || localStorage.getItem("chat_mode") || "general");
+  const [advisingFlowStep, setAdvisingFlowStep] = useState(() => {
+    const savedStep = localStorage.getItem(ADVISING_FLOW_STORAGE_KEY);
+    return savedStep === "step1_redirect" ? "step1_ready" : savedStep || "step1_check";
+  });
+  const [advisingLocalAnswers, setAdvisingLocalAnswers] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem(ADVISING_LOCAL_ANSWERS_STORAGE_KEY) || "{}");
+    } catch {
+      return {};
+    }
+  });
+  const [completedCourses, setCompletedCourses] = useState([]);
+  const [inProgressCourses, setInProgressCourses] = useState([]);
+  const [isGeneratingAdvisementPdf, setIsGeneratingAdvisementPdf] = useState(false);
+  const previousModeRef = useRef(selectedMode);
+  const lastGeneratedAdvisementPdfKeyRef = useRef("");
 
-  const MODEL_OPTIONS = [
-    { id: "inav-1.1", name: "iNav", desc: "Fast & accurate" },
-    { id: "inav-2.0", name: "iNav Pro", desc: "Deeper thinking, may take longer" },
-  ];
+  const remainingStepOneFields = useMemo(() => (
+    STEP_ONE_STUDENT_FIELDS.filter((field) => {
+      const isCompletedInProfile = hasProfileValue(STEP_ONE_PROFILE_FIELD_EXTRACTORS[field]?.(userProfile, degreeWorksProfile));
+      return !isCompletedInProfile;
+    })
+  ), [degreeWorksProfile, userProfile]);
 
-  // Close dropdown when clicking outside
+  const completedProfileStepOneFields = useMemo(() => (
+    STEP_ONE_STUDENT_FIELDS.filter((field) => hasProfileValue(STEP_ONE_PROFILE_FIELD_EXTRACTORS[field]?.(userProfile, degreeWorksProfile)))
+  ), [degreeWorksProfile, userProfile]);
+
+  const stepOneKnownFacts = useMemo(() => (
+    STEP_ONE_STUDENT_FIELDS
+      .map((field) => ({
+        field,
+        value: STEP_ONE_PROFILE_FIELD_EXTRACTORS[field]?.(userProfile, degreeWorksProfile),
+      }))
+      .filter((fact) => hasProfileValue(fact.value))
+      .map((fact) => ({ ...fact, value: formatAdvisingValue(fact.value) }))
+  ), [degreeWorksProfile, userProfile]);
+
+  const stepOneKnownFactText = useMemo(() => (
+    stepOneKnownFacts.length > 0
+      ? stepOneKnownFacts.map((fact) => `- ${fact.field}: ${fact.value}`).join("\n")
+      : "- None available yet"
+  ), [stepOneKnownFacts]);
+
+  const remainingAdvisingStudentFields = useMemo(() => (
+    ADVISING_STUDENT_FIELDS.filter((field) => {
+      const isCompletedInProfile = hasProfileValue(ADVISING_PROFILE_FIELD_EXTRACTORS[field]?.(userProfile, degreeWorksProfile, inProgressCourses));
+      return !isCompletedInProfile;
+    })
+  ), [degreeWorksProfile, inProgressCourses, userProfile]);
+
+  const completedProfileAdvisingFields = useMemo(() => (
+    ADVISING_STUDENT_FIELDS.filter((field) => hasProfileValue(ADVISING_PROFILE_FIELD_EXTRACTORS[field]?.(userProfile, degreeWorksProfile, inProgressCourses)))
+  ), [degreeWorksProfile, inProgressCourses, userProfile]);
+
+  const advisingKnownFacts = useMemo(() => (
+    ADVISING_STUDENT_FIELDS
+      .map((field) => ({
+        field,
+        value: ADVISING_PROFILE_FIELD_EXTRACTORS[field]?.(userProfile, degreeWorksProfile, inProgressCourses),
+      }))
+      .filter((fact) => hasProfileValue(fact.value))
+      .map((fact) => ({ ...fact, value: formatAdvisingValue(fact.value) }))
+  ), [degreeWorksProfile, inProgressCourses, userProfile]);
+
+  const advisingKnownFactText = useMemo(() => (
+    advisingKnownFacts.length > 0
+      ? advisingKnownFacts.map((fact) => `- ${fact.field}: ${fact.value}`).join("\n")
+      : "- None available yet"
+  ), [advisingKnownFacts]);
+
   useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (modelDropdownRef.current && !modelDropdownRef.current.contains(e.target)) {
-        setModelDropdownOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    if (mode && mode !== selectedMode) {
+      setSelectedMode(mode);
+    }
+  }, [mode, selectedMode]);
+
+  useEffect(() => {
+    localStorage.setItem("chat_mode", selectedMode);
+  }, [selectedMode]);
+
+  useEffect(() => {
+    localStorage.setItem(ADVISING_FLOW_STORAGE_KEY, advisingFlowStep);
+  }, [advisingFlowStep]);
+
+  useEffect(() => {
+    localStorage.setItem(ADVISING_LOCAL_ANSWERS_STORAGE_KEY, JSON.stringify(advisingLocalAnswers));
+  }, [advisingLocalAnswers]);
+
+  const loadCompletedCourses = useCallback(() => {
+    try {
+      const raw = localStorage.getItem(CURRICULUM_STATUS_STORAGE_KEY);
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      return Object.entries(parsed)
+        .filter(([, status]) => status === "completed")
+        .map(([courseCode]) => courseCode)
+        .sort((left, right) => left.localeCompare(right));
+    } catch {
+      return [];
+    }
   }, []);
+
+  // 🔥 Load full curriculum status (completed + in-progress) for advising mode
+  const loadInProgressCourses = useCallback(() => {
+    try {
+      const raw = localStorage.getItem(CURRICULUM_STATUS_STORAGE_KEY);
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      return Object.entries(parsed)
+        .filter(([, status]) => status === "in_progress")
+        .map(([courseCode]) => courseCode)
+        .sort((left, right) => left.localeCompare(right));
+    } catch {
+      return [];
+    }
+  }, []);
+
+  const loadCurriculumStatus = useCallback(() => {
+    try {
+      const raw = localStorage.getItem(CURRICULUM_STATUS_STORAGE_KEY);
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch {
+      return null;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (selectedMode === "advising") {
+      setCompletedCourses(loadCompletedCourses());
+      setInProgressCourses(loadInProgressCourses());
+    }
+  }, [loadCompletedCourses, loadInProgressCourses, selectedMode]);
+
+  useEffect(() => {
+    if (selectedMode === "advising" && previousModeRef.current !== "advising") {
+      setAdvisingFlowStep("step1_check");
+      setCompletedCourses(loadCompletedCourses());
+      setInProgressCourses(loadInProgressCourses());
+    }
+    previousModeRef.current = selectedMode;
+  }, [loadCompletedCourses, loadInProgressCourses, selectedMode]);
 
   // 🔥 Feedback State
   const [feedbackMenuOpen, setFeedbackMenuOpen] = useState(null); // index of message with open menu
@@ -204,6 +505,7 @@ export default function Chatbox({ initialMessages = [], onSessionChange, session
         });
         if (response.ok) {
           const data = await response.json();
+          setUserProfile(data);
           if (data.profilePicture) {
              // Handle base64 data URLs, full URLs, and relative paths
              let picUrl = data.profilePicture;
@@ -226,9 +528,35 @@ export default function Chatbox({ initialMessages = [], onSessionChange, session
     fetchUserProfile();
   }, []);
 
-  // 6. Fetch randomized featured questions from backend
+  useEffect(() => {
+    const fetchDegreeWorksProfile = async () => {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+      try {
+        const response = await fetch(`${API_BASE}/api/degreeworks`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setDegreeWorksProfile(data.connected ? data.data : null);
+        }
+      } catch (error) {
+        console.error("DegreeWorks profile error:", error);
+      }
+    };
+    fetchDegreeWorksProfile();
+  }, []);
+
+  // 6. Fetch randomized featured questions from backend (NOT for advising mode)
   useEffect(() => {
     const fetchSuggestions = async () => {
+      // Disable random questions on advising mode to avoid confusing students
+      if (selectedMode === "advising") {
+        setSuggestions([]);
+        setSuggestionsLoading(false);
+        return;
+      }
+
       if (messages.length > 0) {
         setSuggestionsLoading(false);
         return;
@@ -248,7 +576,7 @@ export default function Chatbox({ initialMessages = [], onSessionChange, session
       }
     };
     fetchSuggestions();
-  }, []);
+  }, [selectedMode]);
 
   // 7. Cleanup voice mode on unmount
   useEffect(() => {
@@ -298,8 +626,304 @@ export default function Chatbox({ initialMessages = [], onSessionChange, session
 
   // Helper to add message to local state
   const addMessage = (text, sender) => {
+    const id = createMessageId();
     const time = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    setMessages((prev) => [...prev, { text, sender, time }]);
+    setMessages((prev) => [...prev, { id, text, sender, time }]);
+    return id;
+  };
+
+  // 🔥 BINARY QUESTION DETECTION - For [YES/NO_QUESTION]: markers
+  const detectBinaryQuestion = (text) => {
+    if (!text || selectedMode !== "advising") return null;
+    const matches = [...text.matchAll(/\[YES\/NO_QUESTION\]:\s*(.+?)(?:\n|$)/g)];
+    if (matches.length !== 1) return null;
+    const match = matches[0];
+    if (match) {
+      return {
+        questionText: match[1].trim(),
+        fullText: text
+      };
+    }
+    return null;
+  };
+
+  const buildAdvisingContextMessage = (userText) => {
+    if (selectedMode !== "advising") return userText;
+    const localAnswerText = Object.keys(advisingLocalAnswers).length > 0
+      ? Object.entries(advisingLocalAnswers).map(([field, value]) => `- ${field}: ${value}`).join("\n")
+      : "- None captured locally yet";
+
+    if (advisingFlowStep === "step1_ready") {
+      return `[STEP ONE FORM CONTEXT]\nForm title: ${ADVISING_STEP_ONE_TITLE}\nRequired flow: complete Step One, the Internship/Research/Job Experience Form, before starting Step Two.\nStep One focus: Internship, Research, Job Experience Form only.\nKnown Step One values from saved profile/DegreeWorks; use these directly and do not ask the student for them again:\n${stepOneKnownFactText}\nLocally captured Step One/Two answers; treat these as already answered and do not ask again:\n${localAnswerText}\nStudent profile already has these Step One fields; never re-ask them: ${formatFieldList(completedProfileStepOneFields)}.\nOnly ask the student to answer these remaining starting fields: ${formatFieldList(remainingStepOneFields)}.\nConditional sections from the original form:\n${STEP_ONE_CONDITIONAL_SECTIONS.map((section) => `- ${section}`).join("\n")}\nEfficiency rule: ask for at most 3 missing fields at a time, group related fields, and skip anything already known from profile, DegreeWorks, curriculum, local answers, or conversation history.\nBinary question rule: ask only one yes/no question per turn. If a yes/no question is needed, ask only that question and wait for the student to answer before asking another yes/no or any follow-up details.\nReadable formatting rule: use short Markdown sections, blank lines, and bullets. Do not send a dense paragraph of required fields.\nContinuity rule: after processing the student's answer, always continue with the next Step One form field or summarize Step One and ask whether they are ready for Step Two. Do not stop without a next question or next action.\nDo not move to Step Two until Step One values are summarized and the student confirms they are ready to continue.\n\n${userText}`;
+    }
+
+    if (advisingFlowStep === "step2_ready") {
+      const courseSummary = completedCourses.length > 0 ? completedCourses.join(", ") : "none recorded yet";
+      const inProgressSummary = inProgressCourses.length > 0 ? inProgressCourses.join(", ") : "none recorded yet";
+      return `[ADVISING MODE CONTEXT]\nStep One completed: yes\nRequired flow: Step One is complete, so continue Step Two, the Academic Advisement Form, until the advisor-ready draft is confirmed.\nStep Two focus: Academic Advisement Form and next-semester course selection.\nAdvisor-facing form sections: Student Information, Courses Currently Being Pursued, Student Selected Courses, curriculum-fit acknowledgement, explanation for any non-curricular course, Advisor Edits/Comments, Student Submission Date, Advisor Approval Date.\nCompleted curriculum courses: ${courseSummary}\nCourses currently being pursued: ${inProgressSummary}\nPrerequisite planning rule: in-progress courses count as satisfying prerequisites for registration planning, but say the eligibility is conditional on successful completion of the in-progress prerequisite.\nKnown advising values from saved profile/DegreeWorks/curriculum; use these directly and do not ask the student for them again:\n${advisingKnownFactText}\nLocally captured Step One/Two answers; treat these as already answered and do not ask again:\n${localAnswerText}\nStudent profile already has these fields; never re-ask them: ${formatFieldList(completedProfileAdvisingFields)}.\nOnly ask the student to answer these remaining advisor-form fields: ${formatFieldList(remainingAdvisingStudentFields)}.\nCourse selection goals:\n${ADVISING_COURSE_SELECTION_GOALS.map((goal) => `- ${goal}`).join("\n")}\nEfficiency rule: ask for at most 3 missing fields at a time, group related fields, and skip anything already known from profile, DegreeWorks, curriculum, local answers, or conversation history.\nBinary question rule: ask only one yes/no question per turn. If a yes/no question is needed, ask only that question and wait for the student to answer before asking another yes/no or any follow-up details.\nReadable formatting rule: use short Markdown sections, blank lines, and bullets. Do not send a dense paragraph of required fields.\nFaculty advising rule: determine the student's goals first, then recommend classes that best align with those goals while satisfying prerequisites and outstanding curriculum requirements.\nWhen enough information is available, propose Student Selected Courses for next semester with a short rationale for each course, prerequisite status, and career-goal fit.\nIf a recommended course does not clearly fulfill an outstanding curricular component, ask for or provide the explanation required by the form.\nContinuity rule: after processing the student's answer, always continue with the next Step Two form field, a course-planning recommendation, or the advisor-ready Step Two draft. Do not stop without a next question or next action.\nWhen the plan is ready, summarize the advisor-ready Step Two draft and ask for confirmation before treating it as complete.\nStep Three: Meet with Advisor is bypassed for now.\nStep Four: Registration is bypassed for now.\n\n${userText}`;
+    }
+
+    return userText;
+  };
+
+  const storeLocalAdvisingAnswer = (field, value) => {
+    const nextAnswers = {
+      ...advisingLocalAnswers,
+      [field]: value,
+    };
+    setAdvisingLocalAnswers(nextAnswers);
+    try {
+      localStorage.setItem(ADVISING_LOCAL_ANSWERS_STORAGE_KEY, JSON.stringify(nextAnswers));
+    } catch (error) {
+      console.error("Failed to persist advising answer:", error);
+    }
+    return nextAnswers;
+  };
+
+  const getLatestAdvisorDraft = (messageList = messages) => {
+    return [...messageList]
+      .reverse()
+      .find((message) => {
+        if (message.sender !== "bot") return false;
+        const cleanText = sanitizeAssistantMessage(message.text);
+        if (cleanText.length < 40) return false;
+        if (detectBinaryQuestion(message.text)) return false;
+        return /advisor|selected courses|student selected|rationale|prerequisite|curricular|draft/i.test(cleanText);
+      });
+  };
+
+  const handleLocalBinaryAnswer = (questionKey, answerText) => {
+    const answerValue = answerText === "Yes" ? "Yes" : "No";
+    const askBot = (text) => addMessage(text, "bot");
+    const askBinary = (question) => askBot(buildBinaryQuestion(question));
+
+    if (!questionKey || selectedMode !== "advising") return false;
+
+    addMessage(answerText, "user");
+    setInput("");
+    setIsLoading(false);
+
+    if (questionKey === "ready_step_two") {
+      storeLocalAdvisingAnswer("Ready for Step Two", answerValue);
+      if (answerValue === "Yes") {
+        handleAdvisingStepOneResponse(true);
+      } else {
+        askBot("No problem. What would you like to update in Step One before we move to the Advising Form?");
+      }
+      return true;
+    }
+
+    if (questionKey === "grad_program_awareness") {
+      storeLocalAdvisingAnswer("SCMNS graduate programs awareness", answerValue);
+      askBinary("Would you like to conduct research on campus?");
+      return true;
+    }
+
+    if (questionKey === "campus_research_interest") {
+      storeLocalAdvisingAnswer("Campus research interest", answerValue);
+      askBinary("Did you present research this academic year?");
+      return true;
+    }
+
+    if (questionKey === "research_presentations") {
+      storeLocalAdvisingAnswer("Research presentations this academic year", answerValue);
+      if (answerValue === "Yes") {
+        askBot("Please share your research presentation details: presentation type, title, conference name, location, and date. If you had more than one, list each one.");
+      } else {
+        askBinary("Did you have a publication this academic year?");
+      }
+      return true;
+    }
+
+    if (questionKey === "publications") {
+      storeLocalAdvisingAnswer("Publication this academic year", answerValue);
+      if (answerValue === "Yes") {
+        askBot("Please share the publication title, publication date, and location.");
+      } else {
+        askBinary("Did you participate in an internship, research, or job experience this academic year?");
+      }
+      return true;
+    }
+
+    if (questionKey === "experience_participation") {
+      storeLocalAdvisingAnswer("Internship, research, or job participation", answerValue);
+      if (answerValue === "Yes") {
+        askBot("Great. Please tell me about the experience: type, role or title, organization, program name if applicable, mentor if research, location or address, and how it supported your education or career goals.");
+      } else {
+        askBinary("Did you apply for an internship, research, or job experience but were not selected?");
+      }
+      return true;
+    }
+
+    if (questionKey === "experience_applied_not_selected") {
+      storeLocalAdvisingAnswer("Applied but not selected for experience", answerValue);
+      if (answerValue === "Yes") {
+        askBot(`Thanks, I noted that you applied but were not selected.\n\nStep One is almost ready.\n\nPlease rate these Canvas items in one message:\n- Assignments posted in Canvas: Very timely, Timely, Delayed, or Very delayed\n- Assignments graded before midterms: Very timely, Timely, Delayed, or Very delayed`);
+      } else {
+        askBot("Briefly explain why you did not apply for an internship, research, or job experience this academic year.");
+      }
+      return true;
+    }
+
+    if (questionKey === "second_experience") {
+      storeLocalAdvisingAnswer("Second internship, research, or job experience", answerValue);
+      if (answerValue === "Yes") {
+        askBot("Please share the second experience details: type, role or title, organization, mentor if research, address or location, and how it supported your education or career goals.");
+      } else {
+        askBot(`Step One is almost ready.\n\nPlease rate these Canvas items in one message:\n- Assignments posted in Canvas: Very timely, Timely, Delayed, or Very delayed\n- Assignments graded before midterms: Very timely, Timely, Delayed, or Very delayed`);
+      }
+      return true;
+    }
+
+    if (questionKey === "has_minor") {
+      if (answerValue === "Yes") {
+        storeLocalAdvisingAnswer("Has minor", "Yes");
+        askBot("What is your minor?");
+      } else {
+        storeLocalAdvisingAnswer("Minor", "None");
+        askBinary("Do you plan to work next semester?");
+      }
+      return true;
+    }
+
+    if (questionKey === "work_next_semester") {
+      storeLocalAdvisingAnswer("Plan to work next semester", answerValue);
+      askBot("Thanks. What are your career goals, desired credit load, and any course preferences for next semester?");
+      return true;
+    }
+
+    if (questionKey === "selected_courses_curricular_fit") {
+      storeLocalAdvisingAnswer("Selected courses fulfill outstanding curricular components", answerValue);
+      if (answerValue === "Yes") {
+        askBinary("Do you want to confirm this advising draft for advisor review?");
+      } else {
+        askBot("Please explain why the non-curricular course should be included, such as graduate school preparation, professional school prerequisites, career alignment, or another reason.");
+      }
+      return true;
+    }
+
+    if (questionKey === "confirm_advising_draft") {
+      const nextAnswers = storeLocalAdvisingAnswer("Advisor-ready draft confirmed", answerValue);
+      if (answerValue === "Yes") {
+        const draftMessage = getLatestAdvisorDraft(messages);
+        const advisorDraft = draftMessage ? sanitizeAssistantMessage(draftMessage.text) : "";
+        askBot("Great. I have your Step Two advising draft marked as ready for advisor review. I am generating the Academic Advisement PDF now.");
+        generateAdvisementPdf({
+          localAnswersOverride: nextAnswers,
+          advisorDraftOverride: advisorDraft,
+          silent: true,
+        });
+      } else {
+        askBot("What would you like to change before I mark the advising draft ready for advisor review?");
+      }
+      return true;
+    }
+
+    return false;
+  };
+
+  // Handle binary question button clicks (Yes/No)
+  const handleBinaryAnswer = async (messageIndex, answer) => {
+    const token = localStorage.getItem("token");
+    const answerText = answer === "yes" ? "Yes" : "No";
+    const binaryQuestion = detectBinaryQuestion(messages[messageIndex]?.text);
+    const questionKey = classifyAdvisingBinaryQuestion(binaryQuestion?.questionText);
+    if (handleLocalBinaryAnswer(questionKey, answerText)) return;
+
+    const finalAnswerText = binaryQuestion
+      ? `Answer to "${binaryQuestion.questionText}": ${answerText}`
+      : answerText;
+    const contextualAnswerText = buildAdvisingContextMessage(finalAnswerText);
+    
+    // Add user's answer as a message
+    addMessage(answerText, "user");
+    setInput("");
+    setIsLoading(true);
+
+    try {
+      const curriculumData = loadCurriculumStatus();
+      const res = await fetch(`${API_BASE}/chat/stream`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          query: contextualAnswerText,
+          session_id: sessionId || "default",
+          model: CHAT_MODEL,
+          mode: selectedMode,
+          curriculum_data: curriculumData
+        })
+      });
+
+      if (res.status === 401 || res.status === 403) {
+        addMessage("Session expired. Please log in again.", "bot");
+        setIsLoading(false);
+        return;
+      }
+
+      if (!res.ok) throw new Error(res.statusText);
+
+      // Process streaming response (similar to handleSend)
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let fullText = "";
+
+      const botMessageId = createMessageId();
+      const time = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      setMessages((prev) => [...prev, { id: botMessageId, text: "", sender: "bot", time, isStreaming: true }]);
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          if (line.startsWith("data: ")) {
+            try {
+              const event = JSON.parse(line.slice(6));
+
+              if (event.type === "chunk") {
+                fullText += event.content;
+                setMessages((prev) => updateMessageById(prev, botMessageId, { text: fullText }));
+              } else if (event.type === "done") {
+                fullText = event.content || fullText;
+                setMessages((prev) => updateMessageById(prev, botMessageId, { text: fullText, isStreaming: false }));
+              } else if (event.type === "error") {
+                const errMsg = event.content || "I hit a temporary issue, but we can keep going. Please answer the next form prompt or type continue.";
+                setMessages((prev) => updateMessageById(prev, botMessageId, { text: errMsg, isStreaming: false }));
+              }
+            } catch (parseErr) {
+              console.warn("SSE parse error:", parseErr);
+            }
+          }
+        }
+      }
+
+      setMessages((prev) => {
+        const target = prev.find((message) => message.id === botMessageId);
+        if (!target?.isStreaming) return prev;
+        const cleanText = (target.text || "").replace(/[\x00-\x09\x0B-\x1F\x7F-\x9F]/g, "").trim();
+        const fallback = advisingFlowStep === "step2_ready"
+          ? "Let's keep going with Step Two. What career goal or target credit load should I use when selecting your next-semester courses?"
+          : "Let's keep going with Step One. Please answer the next form prompt, or type continue and I will ask it one at a time.";
+        return updateMessageById(prev, botMessageId, {
+          text: cleanText || fallback,
+          isStreaming: false
+        });
+      });
+    } catch (err) {
+      console.error("Binary answer error:", err);
+      addMessage("Sorry, there was an error processing your answer.", "bot");
+    } finally {
+      setIsLoading(false);
+      setTimeout(() => inputRef.current?.focus(), 100);
+    }
   };
 
   // 🔥 Enhanced TTS using OpenAI API
@@ -390,6 +1014,35 @@ export default function Chatbox({ initialMessages = [], onSessionChange, session
     utterance.onend = () => setIsSpeaking(false);
     setIsSpeaking(true);
     window.speechSynthesis.speak(utterance);
+  };
+
+  const openInternshipForm = () => {
+    window.open(ADVISING_STEP_ONE_URL, "_blank", "noopener,noreferrer");
+  };
+
+  const handleAdvisingStepOneResponse = (completedStepOne) => {
+    const courses = loadCompletedCourses();
+    const inProgress = loadInProgressCourses();
+    setCompletedCourses(courses);
+    setInProgressCourses(inProgress);
+
+    if (!completedStepOne) {
+      setAdvisingFlowStep("step1_ready");
+      setAdvisingLocalAnswers({});
+      const completedProfileSummary = completedProfileStepOneFields.length > 0
+        ? ` I already pulled these from your profile: ${formatFieldList(completedProfileStepOneFields)}.`
+        : "";
+      addMessage(`Let's complete Step One together: ${ADVISING_STEP_ONE_TITLE}.${completedProfileSummary} I will keep it short and only ask for what is still needed: ${formatFieldList(remainingStepOneFields)}. Conditional research, publication, and experience details will only come up if your answers make them relevant. Are you ready to begin?`, "bot");
+      return;
+    }
+
+    setAdvisingFlowStep("step2_ready");
+    const courseSummary = courses.length > 0 ? courses.join(", ") : "none recorded yet";
+    const inProgressSummary = inProgress.length > 0 ? inProgress.join(", ") : "none recorded yet";
+    const completedProfileSummary = completedProfileAdvisingFields.length > 0
+      ? ` I already have these from your profile: ${formatFieldList(completedProfileAdvisingFields)}.`
+      : "";
+    addMessage(`Great. Step One is complete, so we can begin Step Two: the Academic Advisement Form. I see these completed curriculum courses: ${courseSummary}. I also see these courses currently being pursued: ${inProgressSummary}. In-progress courses will count for prerequisite planning while you are currently taking them.${completedProfileSummary} I will only ask for the remaining advisor-form details: ${formatFieldList(remainingAdvisingStudentFields)}. Then I will help select next-semester courses that fit your curriculum, prerequisites, graduation timing, and career goals.`, "bot");
   };
 
   // Handle File Selection (Staging)
@@ -524,7 +1177,8 @@ export default function Chatbox({ initialMessages = [], onSessionChange, session
         body: JSON.stringify({
           query: transcript,
           session_id: sessionId || "default",
-          model: selectedModel
+            model: CHAT_MODEL,
+            mode: selectedMode
         })
       });
 
@@ -725,9 +1379,37 @@ export default function Chatbox({ initialMessages = [], onSessionChange, session
     const sendText = overrideText || input.trim();
     if ((!sendText && !pendingFile) || isLoading) return;
 
+    // Handle Step One keyword detection in advising mode
+    if (selectedMode === "advising" && advisingFlowStep === "step1_check") {
+      const lowerText = sendText.toLowerCase();
+      const completionKeywords = ["yes", "complete", "completed", "finished", "done", "have", "i have"];
+      const nonCompletionKeywords = ["no", "haven't", "have not", "not completed", "need help", "don't have", "do not have"];
+      
+      const hasCompletion = completionKeywords.some(kw => lowerText.includes(kw));
+      const hasNonCompletion = nonCompletionKeywords.some(kw => lowerText.includes(kw));
+      
+      if (hasCompletion && !hasNonCompletion) {
+        // User says they completed Step One
+        addMessage(sendText, "user");
+        setInput("");
+        handleAdvisingStepOneResponse(true);
+        return;
+      } else if (hasNonCompletion || !hasCompletion) {
+        // User says they haven't completed it, or unclear response
+        addMessage(sendText, "user");
+        setInput("");
+        handleAdvisingStepOneResponse(false);
+        return;
+      }
+    }
+
     setIsLoading(true);
     setInput("");  // Clear input immediately to prevent concatenation with next typed message
     let finalMessage = sendText;
+    let displayMessage = getVisibleUserMessage(sendText); // Keep hidden context out of the UI
+    let activeBotMessageId = null;
+
+    finalMessage = buildAdvisingContextMessage(finalMessage);
 
     try {
         const token = localStorage.getItem("token");
@@ -751,8 +1433,11 @@ export default function Chatbox({ initialMessages = [], onSessionChange, session
 
                 if (finalMessage) {
                     finalMessage = `${fileMarkdown}\n${finalMessage}`;
+                }
+                if (displayMessage) {
+                    displayMessage = `${fileMarkdown}\n${displayMessage}`;
                 } else {
-                    finalMessage = fileMarkdown;
+                    displayMessage = fileMarkdown;
                 }
             } else {
                 toast.error("File upload failed. Sending text only.");
@@ -760,7 +1445,7 @@ export default function Chatbox({ initialMessages = [], onSessionChange, session
         }
 
         // 2. Optimistic UI Update
-        addMessage(finalMessage, "user");
+        addMessage(displayMessage, "user");
         if (!overrideText) {
             setInput("");
             setPendingFile(null);
@@ -769,10 +1454,11 @@ export default function Chatbox({ initialMessages = [], onSessionChange, session
         }
 
         // 3. Add placeholder bot message for streaming
-        const botMessageIndex = messages.length + 1; // Index after user message
+        const botMessageId = createMessageId();
+        activeBotMessageId = botMessageId;
         const time = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
         setThinkingStepIndex(0);
-        setMessages((prev) => [...prev, { text: "", sender: "bot", time, isStreaming: true }]);
+        setMessages((prev) => [...prev, { id: botMessageId, text: "", sender: "bot", time, isStreaming: true }]);
 
         // 4. Stream from Chat API using fetch with ReadableStream
         const res = await fetch(`${API_BASE}/chat/stream`, {
@@ -785,20 +1471,16 @@ export default function Chatbox({ initialMessages = [], onSessionChange, session
                 query: finalMessage,
                 session_id: sessionId || "default",
                 skip_cache: skipCache,
-                model: selectedModel
+              model: CHAT_MODEL,
+              mode: selectedMode
             }),
         });
 
         if (res.status === 401 || res.status === 403) {
-            setMessages((prev) => {
-                const newMessages = [...prev];
-                newMessages[newMessages.length - 1] = {
-                    ...newMessages[newMessages.length - 1],
-                    text: "Session expired. Please log in again.",
-                    isStreaming: false
-                };
-                return newMessages;
-            });
+            setMessages((prev) => updateMessageById(prev, botMessageId, {
+                text: "Session expired. Please log in again.",
+                isStreaming: false
+            }));
             setIsLoading(false);
             return;
         }
@@ -830,26 +1512,11 @@ export default function Chatbox({ initialMessages = [], onSessionChange, session
                         } else if (event.type === "chunk") {
                             fullText += event.content;
                             // Update the streaming message
-                            setMessages((prev) => {
-                                const newMessages = [...prev];
-                                newMessages[newMessages.length - 1] = {
-                                    ...newMessages[newMessages.length - 1],
-                                    text: fullText
-                                };
-                                return newMessages;
-                            });
+                            setMessages((prev) => updateMessageById(prev, botMessageId, { text: fullText }));
                         } else if (event.type === "done") {
                             // Finalize the message
                             fullText = event.content || fullText;
-                            setMessages((prev) => {
-                                const newMessages = [...prev];
-                                newMessages[newMessages.length - 1] = {
-                                    ...newMessages[newMessages.length - 1],
-                                    text: fullText,
-                                    isStreaming: false
-                                };
-                                return newMessages;
-                            });
+                            setMessages((prev) => updateMessageById(prev, botMessageId, { text: fullText, isStreaming: false }));
                         } else if (event.type === "error") {
                             const errMsg = event.content || "An error occurred.";
                             const isOutage = errMsg.includes("temporarily") || errMsg.includes("knowledge base") || errMsg.includes("system issue");
@@ -858,7 +1525,7 @@ export default function Chatbox({ initialMessages = [], onSessionChange, session
                                 // Silent retry once before showing toast (ADK cold-connect)
                                 if (!skipCache && !window._lastRetried) {
                                     window._lastRetried = true;
-                                    setMessages((prev) => prev.slice(0, -1)); // remove placeholder
+                                    setMessages((prev) => removeMessageById(prev, botMessageId)); // remove placeholder
                                     setIsLoading(false);
                                     setTimeout(() => {
                                         handleSend(null, finalMessage, false);
@@ -884,17 +1551,9 @@ export default function Chatbox({ initialMessages = [], onSessionChange, session
                                     icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="url(#tg)" strokeWidth="2" strokeLinecap="round"/><path d="M12 7v5l3 3" stroke="url(#tg)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><defs><linearGradient id="tg" x1="3" y1="3" x2="21" y2="21"><stop stopColor="#818cf8"/><stop offset="1" stopColor="#6366f1"/></linearGradient></defs></svg>,
                                 });
                                 // Remove the placeholder bot message
-                                setMessages((prev) => prev.slice(0, -1));
+                                setMessages((prev) => removeMessageById(prev, botMessageId));
                             } else {
-                                setMessages((prev) => {
-                                    const newMessages = [...prev];
-                                    newMessages[newMessages.length - 1] = {
-                                        ...newMessages[newMessages.length - 1],
-                                        text: errMsg,
-                                        isStreaming: false
-                                    };
-                                    return newMessages;
-                                });
+                                setMessages((prev) => updateMessageById(prev, botMessageId, { text: errMsg, isStreaming: false }));
                             }
                         }
                     } catch (parseErr) {
@@ -906,17 +1565,13 @@ export default function Chatbox({ initialMessages = [], onSessionChange, session
 
         // Finalize if stream ended without explicit done
         setMessages((prev) => {
-            const newMessages = [...prev];
-            const lastMsg = newMessages[newMessages.length - 1];
-            if (lastMsg.isStreaming) {
-                const cleanText = (lastMsg.text || "").replace(/[\x00-\x09\x0B-\x1F\x7F-\x9F]/g, "").trim();
-                newMessages[newMessages.length - 1] = {
-                    ...lastMsg,
-                    text: cleanText || "I'm sorry, I couldn't generate a response. Please try rephrasing your question.",
-                    isStreaming: false
-                };
-            }
-            return newMessages;
+            const target = prev.find((message) => message.id === botMessageId);
+            if (!target?.isStreaming) return prev;
+            const cleanText = (target.text || "").replace(/[\x00-\x09\x0B-\x1F\x7F-\x9F]/g, "").trim();
+            return updateMessageById(prev, botMessageId, {
+                text: cleanText || "I'm sorry, I couldn't generate a response. Please try rephrasing your question.",
+                isStreaming: false
+            });
         });
 
     } catch (err) {
@@ -927,11 +1582,9 @@ export default function Chatbox({ initialMessages = [], onSessionChange, session
             // Silent retry once before showing toast (backend cold-connect)
             if (!window._lastRetried) {
                 window._lastRetried = true;
-                setMessages((prev) => {
-                    const last = prev[prev.length - 1];
-                    if (last && last.sender === "bot" && last.isStreaming) return prev.slice(0, -1);
-                    return prev;
-                });
+                if (activeBotMessageId) {
+                    setMessages((prev) => removeMessageById(prev, activeBotMessageId));
+                }
                 setIsLoading(false);
                 setTimeout(() => {
                     handleSend(null, finalMessage, false);
@@ -956,27 +1609,18 @@ export default function Chatbox({ initialMessages = [], onSessionChange, session
                 icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M21 12a9 9 0 11-6.22-8.56" stroke="url(#dg)" strokeWidth="2" strokeLinecap="round"/><path d="M21 3v5h-5" stroke="url(#dg)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><defs><linearGradient id="dg" x1="3" y1="3" x2="21" y2="21"><stop stopColor="#818cf8"/><stop offset="1" stopColor="#6366f1"/></linearGradient></defs></svg>,
             });
             // Remove the placeholder bot message
-            setMessages((prev) => {
-                const last = prev[prev.length - 1];
-                if (last && last.sender === "bot" && last.isStreaming) {
-                    return prev.slice(0, -1);
-                }
-                return prev;
-            });
+            if (activeBotMessageId) {
+                setMessages((prev) => removeMessageById(prev, activeBotMessageId));
+            }
         } else {
-            setMessages((prev) => {
-                const newMessages = [...prev];
-                if (newMessages.length > 0 && newMessages[newMessages.length - 1].sender === "bot") {
-                    newMessages[newMessages.length - 1] = {
-                        ...newMessages[newMessages.length - 1],
-                        text: "Something went wrong. Please try again.",
-                        isStreaming: false
-                    };
-                } else {
-                    newMessages.push({ text: "Something went wrong. Please try again.", sender: "bot", time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) });
-                }
-                return newMessages;
-            });
+            if (activeBotMessageId) {
+                setMessages((prev) => updateMessageById(prev, activeBotMessageId, {
+                    text: "Something went wrong. Please try again.",
+                    isStreaming: false
+                }));
+            } else {
+                addMessage("Something went wrong. Please try again.", "bot");
+            }
         }
     } finally {
         setIsLoading(false);
@@ -989,6 +1633,8 @@ export default function Chatbox({ initialMessages = [], onSessionChange, session
   const handleRegenerate = () => {
     const lastUserMsg = [...messages].reverse().find(m => m.sender === "user");
     if (!lastUserMsg) return;
+    const regenerateText = getVisibleUserMessage(lastUserMsg.text);
+    if (!regenerateText) return;
     // Remove last bot message
     setMessages(prev => {
       const copy = [...prev];
@@ -997,7 +1643,85 @@ export default function Chatbox({ initialMessages = [], onSessionChange, session
       }
       return copy;
     });
-    setTimeout(() => handleSend(null, lastUserMsg.text, true), 50);
+    setTimeout(() => handleSend(null, regenerateText, true), 50);
+  };
+
+  const generateAdvisementPdf = async ({
+    localAnswersOverride = null,
+    advisorDraftOverride = null,
+    silent = false,
+  } = {}) => {
+    if (isGeneratingAdvisementPdf) return;
+    setIsGeneratingAdvisementPdf(true);
+    try {
+      const token = localStorage.getItem("token");
+      const localAnswersPayload = localAnswersOverride || advisingLocalAnswers;
+      const latestBotDraft = advisorDraftOverride ? null : getLatestAdvisorDraft(messages);
+      const advisorDraft = advisorDraftOverride || (latestBotDraft ? sanitizeAssistantMessage(latestBotDraft.text) : "");
+      const selectedCourseText = [
+        advisorDraft,
+        localAnswersPayload["Student selected courses"],
+        localAnswersPayload["Selected courses"],
+      ].filter(Boolean).join("\n");
+      const selectedCourses = Array.from(new Set((selectedCourseText.match(/\b[A-Z]{2,4}\s?\d{3}\b/g) || []).map((code) => code.replace(/\s+/, " ").trim().toUpperCase())));
+      const pdfKey = JSON.stringify({
+        studentId: firstProfileValue(userProfile?.studentId, degreeWorksProfile?.student_id),
+        selectedCourses,
+        confirmed: localAnswersPayload["Advisor-ready draft confirmed"],
+        draft: advisorDraft.slice(0, 300),
+      });
+
+      if (pdfKey === lastGeneratedAdvisementPdfKeyRef.current) {
+        return;
+      }
+
+      const profilePayload = {
+        name: firstProfileValue(userProfile?.name, degreeWorksProfile?.student_name),
+        firstName: splitProfileName(userProfile, degreeWorksProfile).firstName,
+        lastName: splitProfileName(userProfile, degreeWorksProfile).lastName,
+        studentId: firstProfileValue(userProfile?.studentId, degreeWorksProfile?.student_id),
+        major: firstProfileValue(userProfile?.major, degreeWorksProfile?.degree_program),
+        email: userProfile?.email,
+        classification: degreeWorksProfile?.classification,
+        credits: degreeWorksProfile?.total_credits_earned,
+        advisor: degreeWorksProfile?.advisor,
+        gpa: degreeWorksProfile?.overall_gpa,
+        graduationDate: localAnswersPayload["Graduation Date"],
+      };
+
+      const response = await fetch(`${API_BASE}/api/advising/generate-pdf`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          profile: profilePayload,
+          local_answers: localAnswersPayload,
+          completed_courses: completedCourses,
+          in_progress_courses: inProgressCourses,
+          selected_courses: selectedCourses,
+          advisor_draft: advisorDraft,
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.detail || "Could not generate advisement PDF.");
+      }
+
+      const fullUrl = data.url?.startsWith("http") ? data.url : `${API_BASE}${data.url}`;
+      lastGeneratedAdvisementPdfKeyRef.current = pdfKey;
+      addMessage(`Your Academic Advisement PDF is ready: [${data.filename || "Academic Advisement Form.pdf"}](${fullUrl})`, "bot");
+      if (!silent) {
+        toast.success("Academic Advisement PDF generated.");
+      }
+    } catch (error) {
+      console.error("Advisement PDF generation failed:", error);
+      toast.error(error.message || "Could not generate the advisement PDF.");
+    } finally {
+      setIsGeneratingAdvisementPdf(false);
+    }
   };
 
   // Drag and drop handlers
@@ -1064,48 +1788,50 @@ export default function Chatbox({ initialMessages = [], onSessionChange, session
     return <code className={className} {...props}>{children}</code>;
   };
 
+  const welcomeTitle = selectedMode === "advising" ? "Advising Mode" : "Morgan State CS Navigator";
+  const welcomeSubtitle = selectedMode === "advising"
+    ? "How can I help advise you?"
+    : "How can I assist with your academic journey today?";
+  const showWelcomeSuggestions = selectedMode !== "advising" || advisingFlowStep === "step2_ready";
+  const latestBinaryQuestionIndex = selectedMode === "advising"
+    ? messages.reduce((latestIndex, message, index) => (
+        message.sender === "bot" && !message.isStreaming && detectBinaryQuestion(message.text)
+          ? index
+          : latestIndex
+      ), -1)
+    : -1;
+
   return (
     <div
-      className={`chat-main ${isDragging ? 'drag-active' : ''}`}
+      className={`chat-main ${isDragging ? 'drag-active' : ''} ${selectedMode === 'advising' ? 'mode-advising' : 'mode-general'}`}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
-      {/* Model selector dropdown */}
-      <div className="model-selector-header" ref={modelDropdownRef}>
-        <button
-          className="model-selector-trigger"
-          onClick={() => setModelDropdownOpen(prev => !prev)}
-          disabled={isLoading}
-        >
-          <span className="model-selector-name">
-            {MODEL_OPTIONS.find(m => m.id === selectedModel)?.name || "iNav"}
-          </span>
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ opacity: 0.5, marginLeft: 4 }}>
-            <path d="M4 6L8 10L12 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </button>
-        {modelDropdownOpen && (
-          <div className="model-dropdown">
-            {MODEL_OPTIONS.map(model => (
-              <button
-                key={model.id}
-                className={`model-dropdown-item ${selectedModel === model.id ? 'active' : ''}`}
-                onClick={() => { setSelectedModel(model.id); setModelDropdownOpen(false); }}
-              >
-                <div className="model-dropdown-info">
-                  <span className="model-dropdown-name">{model.name}</span>
-                  <span className="model-dropdown-desc">{model.desc}</span>
-                </div>
-                {selectedModel === model.id && (
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" className="model-dropdown-check">
-                    <path d="M6.5 12.5L2 8l1.5-1.5L6.5 9.5 12.5 3.5 14 5z"/>
-                  </svg>
-                )}
-              </button>
-            ))}
-          </div>
-        )}
+      {/* Mode selector */}
+      <div className="mode-selector-header">
+        <div className="mode-selector-row" role="tablist" aria-label="Chat modes">
+          {CHAT_MODES.map((mode) => (
+            <button
+              key={mode.id}
+              type="button"
+              role="tab"
+              aria-selected={selectedMode === mode.id}
+              className={`mode-tab ${selectedMode === mode.id ? "active" : ""}`}
+              onClick={() => {
+                setSelectedMode(mode.id);
+                onModeChange?.(mode.id);
+              }}
+              disabled={isLoading}
+            >
+              <span className="mode-tab-name">{mode.name}</span>
+              <span className="mode-tab-desc">{mode.desc}</span>
+            </button>
+          ))}
+        </div>
+        <div className="mode-selector-state">
+          {selectedMode === "advising" ? "Advising Mode active" : "General chat active"}
+        </div>
       </div>
 
       {/* Hidden audio element for TTS playback */}
@@ -1131,28 +1857,160 @@ export default function Chatbox({ initialMessages = [], onSessionChange, session
             transition={{ duration: 0.35, ease: [0.34, 1.56, 0.64, 1] }}
           >
             <img src="/msu_logo.webp" alt="MSU Logo" className="welcome-logo" />
-            <h1 className="welcome-title">Morgan State CS Navigator</h1>
-            <p className="welcome-subtitle">How can I assist with your academic journey today?</p>
+            <h1 className="welcome-title">{welcomeTitle}</h1>
+            <p className="welcome-subtitle">{welcomeSubtitle}</p>
+            {selectedMode === "advising" && (
+              <div className="advising-flow-card">
+                {advisingFlowStep === "step1_check" && (
+                  <>
+                    <p className="advising-flow-label">Step One</p>
+                    <p className="advising-flow-question">{ADVISING_STEP_ONE_TITLE}</p>
+                    <p className="advising-flow-helper">I can help you fill the form faster by using saved profile details and only asking for what is missing.</p>
+                    {stepOneKnownFacts.length > 0 && (
+                      <>
+                        <p className="advising-flow-helper">Already pulled from your profile:</p>
+                        <div className="advising-field-pill-group">
+                          {stepOneKnownFacts.map((fact) => (
+                            <span key={fact.field} className="advising-field-pill known">
+                              {fact.field}: {fact.value}
+                            </span>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                    <p className="advising-flow-helper">Still needed to start Step One:</p>
+                    <div className="advising-field-pill-group">
+                      {remainingStepOneFields.length > 0 ? (
+                        remainingStepOneFields.map((field) => (
+                          <span key={field} className="advising-field-pill">{field}</span>
+                        ))
+                      ) : (
+                        <span className="advising-field-pill">Nothing else from your profile section</span>
+                      )}
+                    </div>
+                    <div className="advising-flow-actions">
+                      <button type="button" className="suggestion-btn" onClick={() => handleAdvisingStepOneResponse(false)}>
+                        Start Step One
+                      </button>
+                      <button type="button" className="suggestion-btn" onClick={() => handleAdvisingStepOneResponse(true)}>
+                        I already completed it
+                      </button>
+                    </div>
+                  </>
+                )}
+
+                {advisingFlowStep === "step1_ready" && (
+                  <>
+                    <p className="advising-flow-label">Step One</p>
+                    <p className="advising-flow-question">We are drafting your Internship, Research, Job Experience Form.</p>
+                    <p className="advising-flow-helper">Answer the remaining prompts in chat. I will skip profile fields and only open conditional sections when needed.</p>
+                    {stepOneKnownFacts.length > 0 && (
+                      <>
+                        <p className="advising-flow-helper">Already pulled from your profile:</p>
+                        <div className="advising-field-pill-group">
+                          {stepOneKnownFacts.map((fact) => (
+                            <span key={fact.field} className="advising-field-pill known">
+                              {fact.field}: {fact.value}
+                            </span>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                    <div className="advising-flow-actions">
+                      <a className="advising-link-btn" href={ADVISING_STEP_ONE_URL} target="_blank" rel="noopener noreferrer">
+                        Open Original Form
+                      </a>
+                      <button type="button" className="suggestion-btn" onClick={() => handleAdvisingStepOneResponse(true)}>
+                        Continue to Step Two
+                      </button>
+                    </div>
+                  </>
+                )}
+
+                {advisingFlowStep === "step2_ready" && (
+                  <>
+                    <p className="advising-flow-label">Step Two</p>
+                    <p>We will build your Academic Advisement Form and select next-semester courses for advisor review.</p>
+                    <p className="advising-flow-helper">I will use your completed and in-progress curriculum, then match course options to your goals, career interests, prerequisites, and graduation timeline.</p>
+                    {advisingKnownFacts.length > 0 && (
+                      <>
+                        <p className="advising-flow-helper">Already pulled from your profile:</p>
+                        <div className="advising-field-pill-group">
+                          {advisingKnownFacts.map((fact) => (
+                            <span key={fact.field} className="advising-field-pill known">
+                              {fact.field}: {fact.value}
+                            </span>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                    <p className="advising-flow-helper">Still needed for the advisor form:</p>
+                    <div className="advising-field-pill-group">
+                      {remainingAdvisingStudentFields.length > 0 ? (
+                        remainingAdvisingStudentFields.map((field) => (
+                          <span key={field} className="advising-field-pill">{field}</span>
+                        ))
+                      ) : (
+                        <span className="advising-field-pill">Nothing else from your profile section</span>
+                      )}
+                    </div>
+                    {completedCourses.length > 0 && (
+                      <>
+                        <p className="advising-flow-helper">Completed courses:</p>
+                      <div className="completed-course-list">
+                        {completedCourses.map((courseCode) => (
+                          <span key={courseCode} className="completed-course-pill">{courseCode}</span>
+                        ))}
+                      </div>
+                      </>
+                    )}
+                    {inProgressCourses.length > 0 && (
+                      <>
+                        <p className="advising-flow-helper">In-progress courses, counted for prerequisite planning:</p>
+                        <div className="completed-course-list">
+                          {inProgressCourses.map((courseCode) => (
+                            <span key={courseCode} className="completed-course-pill in-progress">{courseCode}</span>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                    <p>Steps Three and Four are bypassed for now.</p>
+                    <div className="advising-flow-actions">
+                      <button
+                        type="button"
+                        className="suggestion-btn"
+                        onClick={generateAdvisementPdf}
+                        disabled={isGeneratingAdvisementPdf}
+                      >
+                        {isGeneratingAdvisementPdf ? "Generating PDF..." : "Generate Advisement PDF"}
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
             <div className="suggestions">
-              {suggestionsLoading ? (
+              {showWelcomeSuggestions && suggestionsLoading ? (
                 <>
                   <div className="suggestion-skeleton"></div>
                   <div className="suggestion-skeleton"></div>
                   <div className="suggestion-skeleton"></div>
                 </>
-              ) : (
+              ) : showWelcomeSuggestions ? (
                 suggestions.map((s, i) => (
                   <button key={i} className="suggestion-btn" onClick={() => handleSuggestion(s)} disabled={isLoading}>
                     {s}
                   </button>
                 ))
-              )}
+              ) : null}
             </div>
           </motion.div>
         ) : (
-          messages.map((msg, i) => (
+          messages.map((msg, i) => {
+            const displayText = sanitizeAssistantMessage(msg.text);
+            return (
             <motion.div
-              key={i}
+              key={msg.id || i}
               className={`message ${msg.sender}`}
               variants={messageVariants}
               initial="hidden"
@@ -1192,7 +2050,7 @@ export default function Chatbox({ initialMessages = [], onSessionChange, session
                           }
                       }}
                     >
-                      {msg.text}
+                      {displayText}
                     </ReactMarkdown>
 
                     {/* Streaming indicator - show steps when no text, cursor when text is streaming */}
@@ -1220,11 +2078,34 @@ export default function Chatbox({ initialMessages = [], onSessionChange, session
                       </span>
                     )}
 
+                    {/* 🔥 Binary Yes/No Question Buttons */}
+                    {msg.sender === "bot" && !msg.isStreaming && selectedMode === "advising" && i === latestBinaryQuestionIndex && (() => {
+                      const binaryQ = detectBinaryQuestion(msg.text);
+                      return binaryQ ? (
+                        <div className="binary-question-buttons">
+                          <button 
+                            className="binary-btn binary-btn-yes"
+                            onClick={() => handleBinaryAnswer(i, "yes")}
+                            disabled={isLoading}
+                          >
+                            Yes
+                          </button>
+                          <button 
+                            className="binary-btn binary-btn-no"
+                            onClick={() => handleBinaryAnswer(i, "no")}
+                            disabled={isLoading}
+                          >
+                            No
+                          </button>
+                        </div>
+                      ) : null;
+                    })()}
+
                     {msg.sender === "bot" && !msg.isStreaming && (
                       <div className="bot-action-row">
                         <button
                           className={`tts-btn${isSpeaking ? ' tts-active' : ''}`}
-                          onClick={() => speak(msg.text)}
+                          onClick={() => speak(displayText)}
                           title={isSpeaking ? "Stop speaking" : "Read response aloud"}
                         >
                           {isSpeaking ? <FaStop size={14}/> : <FaVolumeUp size={14}/>}
@@ -1271,14 +2152,14 @@ export default function Chatbox({ initialMessages = [], onSessionChange, session
                             <div className="feedback-dropdown">
                               <button
                                 className="feedback-option feedback-option--helpful"
-                                onClick={() => handleFeedback(i, 'helpful', msg.text)}
+                              onClick={() => handleFeedback(i, 'helpful', displayText)}
                               >
                                 <FaThumbsUp size={14} />
                                 <span>Helpful</span>
                               </button>
                               <button
                                 className="feedback-option feedback-option--not-helpful"
-                                onClick={() => handleFeedback(i, 'not_helpful', msg.text)}
+                              onClick={() => handleFeedback(i, 'not_helpful', displayText)}
                               >
                                 <FaThumbsDown size={14} />
                                 <span>Not Helpful</span>
@@ -1300,7 +2181,7 @@ export default function Chatbox({ initialMessages = [], onSessionChange, session
                 <div className="timestamp">{msg.time}</div>
               </div>
             </motion.div>
-          ))
+          )})
         )}
         </AnimatePresence>
 
@@ -1390,7 +2271,7 @@ export default function Chatbox({ initialMessages = [], onSessionChange, session
                 </button>
                 <button
                   className="report-submit-btn"
-                  onClick={() => handleFeedback(reportModal, 'report', messages[reportModal]?.text)}
+                  onClick={() => handleFeedback(reportModal, 'report', sanitizeAssistantMessage(messages[reportModal]?.text))}
                   disabled={!reportText.trim()}
                 >
                   Submit Report
@@ -1401,7 +2282,7 @@ export default function Chatbox({ initialMessages = [], onSessionChange, session
         )}
       </div>
 
-      <div className="chat-input-container">
+      <div className={`chat-input-container ${selectedMode === 'advising' ? 'mode-advising' : 'mode-general'}`}>
 
         <form onSubmit={handleSend} className="chat-input-wrapper">
 
@@ -1476,7 +2357,7 @@ export default function Chatbox({ initialMessages = [], onSessionChange, session
                 <BsArrowUpCircleFill size={24} />
             </button>
 
-            {/* Model toggle removed - now in header dropdown */}
+            {/* Mode switch is handled in the header tabs */}
 
             {/* Live Voice Mode Button */}
             <button

@@ -1,4 +1,732 @@
-MORGAN STATE UNIVERSITY COMPUTER SCIENCE COURSES
+MORGAN STATE UNIVERSITY COMPUTER SCIENCE COURSES AND GENERAL EDUCATION REQUIREMENTS
+
+GENERAL EDUCATION - INFORMATION, TECHNOLOGICAL AND MEDIA LITERACY (IM):
+
+COSC 110 - Introduction to Computing
+Credits: 3
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: General Education Information, Technological and Media Literacy (IM). Students must complete one option in the IM distribution area.
+
+INSS 141 - Digital Literacy and Application Software
+Credits: 3
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: General Education Information, Technological and Media Literacy (IM). Students must complete one option in the IM distribution area.
+
+GENERAL EDUCATION - ENGLISH COMPOSITION (EC):
+
+ENGL 101 - Composition I
+Credits: 3
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: General Education English Composition (EC), Part A. Students select one course from Part A and one from Part B; a grade of C or better is required in both courses in the sequence.
+
+ENGL 111 - Composition I Honors
+Credits: 3
+Prerequisites: Honors standing or departmental permission
+Offered: TBD
+Requirement: General Education English Composition (EC), Part A. Students select one course from Part A and one from Part B; a grade of C or better is required in both courses in the sequence.
+
+ENGL 102 - Composition II
+Credits: 3
+Prerequisites: ENGL 101
+Offered: TBD
+Requirement: General Education English Composition (EC), Part B. ENGL 101 is a prerequisite for ENGL 102; a grade of C or better is required in both courses in the sequence.
+
+ENGL 112 - Composition II Honors
+Credits: 3
+Prerequisites: ENGL 111
+Offered: TBD
+Requirement: General Education English Composition (EC), Part B. ENGL 111 is a prerequisite for ENGL 112; a grade of C or better is required in both courses in the sequence.
+
+GENERAL EDUCATION - CRITICAL THINKING (CT):
+
+ARCH 105 - Place Matters: Introduction to Contemporary City
+Credits: 3
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: General Education Critical Thinking (CT). Students must complete one option in the CT distribution area.
+
+COMM 300 - Communication and the Black Diaspora
+Credits: 3
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: General Education Critical Thinking (CT). Students must complete one option in the CT distribution area.
+
+ENGR 110 - Engineering for Us All
+Credits: 3
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: General Education Critical Thinking (CT). Students must complete one option in the CT distribution area.
+
+MHTC 340 - Spirituality and the Helping Tradition
+Credits: 3
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: General Education Critical Thinking (CT). Students must complete one option in the CT distribution area.
+
+PHIL 109 - Critical Thinking
+Credits: 3
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: General Education Critical Thinking (CT). Students must complete one option in the CT distribution area.
+
+PHIL 119 - Critical Thinking Honors
+Credits: 3
+Prerequisites: Honors standing or departmental permission
+Offered: TBD
+Requirement: General Education Critical Thinking (CT). Students must complete one option in the CT distribution area.
+
+GENERAL EDUCATION - MATHEMATICS AND QUANTITATIVE REASONING (MQ):
+
+MATH 109 - Mathematics for the Liberal Arts
+Credits: 4
+Prerequisites: Placement or departmental permission
+Offered: TBD
+Requirement: General Education Mathematics and Quantitative Reasoning (MQ). Must be MATH 109 or above; students should select the appropriate course after advisement based on placement test scores and major.
+
+MATH 110 - Algebra, Functions, and Analytic Geometry
+Credits: 3
+Prerequisites: Placement or departmental permission
+Offered: TBD
+Requirement: General Education Mathematics and Quantitative Reasoning (MQ). Must be MATH 109 or above; students should select the appropriate course after advisement based on placement test scores and major.
+
+MATH 113 - Introduction to Mathematical Analysis I
+Credits: 4
+Prerequisites: Placement or departmental permission
+Offered: TBD
+Requirement: General Education Mathematics and Quantitative Reasoning (MQ). Must be MATH 109 or above; students should select the appropriate course after advisement based on placement test scores and major.
+
+GENERAL EDUCATION - ARTS AND HUMANITIES (AH):
+
+ART 308 - The Visual Arts
+Credits: 3
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: General Education Arts and Humanities (AH). Students must select two courses from different disciplines in the AH distribution area.
+
+COMM 203 - Media Literacy in a Diverse World
+Credits: 3
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: General Education Arts and Humanities (AH). Students must select two courses from different disciplines in the AH distribution area.
+
+ENGL 347 - Women Writers in Africa and the Diaspora
+Credits: 3
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: General Education Arts and Humanities (AH). Students must select two courses from different disciplines in the AH distribution area.
+
+HUMA 201 - Introduction to Humanities I
+Credits: 3
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: General Education Arts and Humanities (AH). Students must select two courses from different disciplines in the AH distribution area.
+
+HUMA 211 - Introduction to Humanities I Honors
+Credits: 3
+Prerequisites: Honors standing or departmental permission
+Offered: TBD
+Requirement: General Education Arts and Humanities (AH). Students must select two courses from different disciplines in the AH distribution area.
+
+HUMA 202 - Introduction to Humanities II
+Credits: 3
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: General Education Arts and Humanities (AH). Students must select two courses from different disciplines in the AH distribution area.
+
+HUMA 212 - Introduction to Humanities II Honors
+Credits: 3
+Prerequisites: Honors standing or departmental permission
+Offered: TBD
+Requirement: General Education Arts and Humanities (AH). Students must select two courses from different disciplines in the AH distribution area.
+
+HUMA 301 - Contemporary Humanities
+Credits: 3
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: General Education Arts and Humanities (AH). Students must select two courses from different disciplines in the AH distribution area.
+
+MISC 302 - Introduction to Military Training Management
+Credits: 3
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: General Education Arts and Humanities (AH). Students must select two courses from different disciplines in the AH distribution area.
+
+MUSC 391 - The World of Music
+Credits: 3
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: General Education Arts and Humanities (AH). Students must select two courses from different disciplines in the AH distribution area.
+
+PHEC 300 - Selected Roots of Afro American Dance
+Credits: 3
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: General Education Arts and Humanities (AH). Students must select two courses from different disciplines in the AH distribution area.
+
+PHIL 102 - The Big Questions
+Credits: 3
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: General Education Arts and Humanities (AH). Students must select two courses from different disciplines in the AH distribution area.
+
+PHIL 220 - The Good Life
+Credits: 3
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: General Education Arts and Humanities (AH). Students must select two courses from different disciplines in the AH distribution area.
+
+PHIL 223 - Introduction to the Philosophy of Politics
+Credits: 3
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: General Education Arts and Humanities (AH). Students must select two courses from different disciplines in the AH distribution area.
+
+RELG 305 - Introduction to World Religions
+Credits: 3
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: General Education Arts and Humanities (AH). Students must select two courses from different disciplines in the AH distribution area.
+
+THEA 210 - History of the Theatre I
+Credits: 3
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: General Education Arts and Humanities (AH). Students must select two courses from different disciplines in the AH distribution area.
+
+THEA 312 - Black Drama
+Credits: 3
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: General Education Arts and Humanities (AH). Students must select two courses from different disciplines in the AH distribution area.
+
+WGST 301 - Understanding Feminist Theory
+Credits: 3
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: General Education Arts and Humanities (AH). Students must select two courses from different disciplines in the AH distribution area.
+
+GENERAL EDUCATION - BIOLOGICAL AND PHYSICAL SCIENCES (BP):
+
+BIOL 101 - Introductory Biology I
+Credits: 4
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: General Education Biological and Physical Sciences (BP), lab-based. Students must select two BP courses; at least one course must be lab-based.
+
+BIOL 102 - Introductory Biology II
+Credits: 4
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: General Education Biological and Physical Sciences (BP), lab-based. Students must select two BP courses; at least one course must be lab-based.
+
+BIOL 103 - Introductory Biology
+Credits: 4
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: General Education Biological and Physical Sciences (BP), lab-based. Students must select two BP courses; at least one course must be lab-based.
+
+BIOL 109 - Foundations in Biology I - Biodiversity and Organismal Systems
+Credits: 4
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: General Education Biological and Physical Sciences (BP), lab-based. Students must select two BP courses; at least one course must be lab-based.
+
+BIOL 110 - Foundations in Biology II - Cellular Structure and Function
+Credits: 4
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: General Education Biological and Physical Sciences (BP), lab-based. Students must select two BP courses; at least one course must be lab-based.
+
+BIOL 111 - Foundations in Biology I - Biodiversity and Organismal Systems: Honors Biology I
+Credits: 4
+Prerequisites: Honors standing or departmental permission
+Offered: TBD
+Requirement: General Education Biological and Physical Sciences (BP), lab-based. Students must select two BP courses; at least one course must be lab-based.
+
+BIOL 112 - Foundations in Biology II - Cellular Structure and Function Honors Introductory Biology II
+Credits: 4
+Prerequisites: Honors standing or departmental permission
+Offered: TBD
+Requirement: General Education Biological and Physical Sciences (BP), lab-based. Students must select two BP courses; at least one course must be lab-based.
+
+CHEM 101 - General Chemistry
+Credits: 3
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: General Education Biological and Physical Sciences (BP), lab-based when taken with CHEM 101L.
+
+CHEM 101L - General Chemistry
+Credits: 1
+Prerequisites: CHEM 101 or concurrent enrollment
+Offered: TBD
+Requirement: General Education Biological and Physical Sciences (BP) laboratory.
+
+CHEM 105 - Principles of General Chemistry I
+Credits: 3
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: General Education Biological and Physical Sciences (BP), lab-based when taken with CHEM 105L.
+
+CHEM 105L - Principles of General Chemistry I
+Credits: 1
+Prerequisites: CHEM 105 or concurrent enrollment
+Offered: TBD
+Requirement: General Education Biological and Physical Sciences (BP) laboratory.
+
+CHEM 110 - General Chemistry for Engineering Students
+Credits: 3
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: General Education Biological and Physical Sciences (BP), lab-based when taken with CHEM 110L.
+
+CHEM 110L - General Chemistry for Engineering Students
+Credits: 1
+Prerequisites: CHEM 110 or concurrent enrollment
+Offered: TBD
+Requirement: General Education Biological and Physical Sciences (BP) laboratory.
+
+CHEM 111 - General Chemistry Honors
+Credits: 3
+Prerequisites: Honors standing or departmental permission
+Offered: TBD
+Requirement: General Education Biological and Physical Sciences (BP), lab-based when taken with CHEM 111L.
+
+CHEM 111L - General Chemistry Honors
+Credits: 1
+Prerequisites: CHEM 111 or concurrent enrollment
+Offered: TBD
+Requirement: General Education Biological and Physical Sciences (BP) laboratory.
+
+CHEM 112 - General Chemistry and Qualitative Analysis Honors
+Credits: 3
+Prerequisites: Honors standing or departmental permission
+Offered: TBD
+Requirement: General Education Biological and Physical Sciences (BP), lab-based when taken with CHEM 112L.
+
+CHEM 112L - General Chemistry and Qualitative Analysis Honors
+Credits: 1
+Prerequisites: CHEM 112 or concurrent enrollment
+Offered: TBD
+Requirement: General Education Biological and Physical Sciences (BP) laboratory.
+
+EASC 205 - Introductory Earth Science
+Credits: 4
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: General Education Biological and Physical Sciences (BP), lab-based.
+
+PHYS 101 - Introduction to Physics
+Credits: 4
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: General Education Biological and Physical Sciences (BP), lab-based.
+
+PHYS 111 - Introduction to Physics
+Credits: 4
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: General Education Biological and Physical Sciences (BP), lab-based.
+
+PHYS 203 - General Physics: Fundamentals of Physics I
+Credits: 3
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: General Education Biological and Physical Sciences (BP), lab-based when taken with PHYS 203L.
+
+PHYS 203L - General Physics: Fundamentals of Physics I Laboratory
+Credits: 1
+Prerequisites: PHYS 203 or concurrent enrollment
+Offered: TBD
+Requirement: General Education Biological and Physical Sciences (BP) laboratory.
+
+PHYS 205 - University Physics I
+Credits: 4
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: General Education Biological and Physical Sciences (BP), lab-based when taken with PHYS 205L.
+
+PHYS 205L - University Physics I Laboratory
+Credits: 1
+Prerequisites: PHYS 205 or concurrent enrollment
+Offered: TBD
+Requirement: General Education Biological and Physical Sciences (BP) laboratory.
+
+PHYS 206 - University Physics II
+Credits: 4
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: General Education Biological and Physical Sciences (BP), lab-based when taken with PHYS 206L.
+
+PHYS 206L - University Physics II Laboratory
+Credits: 1
+Prerequisites: PHYS 206 or concurrent enrollment
+Offered: TBD
+Requirement: General Education Biological and Physical Sciences (BP) laboratory.
+
+EASC 101 - Stellar Astronomy
+Credits: 3
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: General Education Biological and Physical Sciences (BP), non-lab-based.
+
+EASC 102 - Meteorology
+Credits: 3
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: General Education Biological and Physical Sciences (BP), non-lab-based.
+
+EASC 201 - Physical Geology
+Credits: 3
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: General Education Biological and Physical Sciences (BP), non-lab-based.
+
+EASC 202 - Historical Geology
+Credits: 3
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: General Education Biological and Physical Sciences (BP), non-lab-based.
+
+EASC 203 - Mineralogy
+Credits: 3
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: General Education Biological and Physical Sciences (BP), non-lab-based.
+
+EASC 301 - Planetary Science
+Credits: 3
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: General Education Biological and Physical Sciences (BP), non-lab-based.
+
+GEOG 101 - Introduction to Geography
+Credits: 3
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: General Education Biological and Physical Sciences (BP), non-lab-based.
+
+GEOG 104 - Introduction to Physical Geography: Landforms
+Credits: 3
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: General Education Biological and Physical Sciences (BP), non-lab-based.
+
+GEOG 105 - Introduction to Weather and Climate
+Credits: 3
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: General Education Biological and Physical Sciences (BP), non-lab-based.
+
+PHYS 105 - Energy, Transportation and Pollution I
+Credits: 3
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: General Education Biological and Physical Sciences (BP), non-lab-based.
+
+PHYS 310 - Astronomy and Space Science
+Credits: 3
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: General Education Biological and Physical Sciences (BP), non-lab-based.
+
+PHYS 311 - Acoustics and You
+Credits: 3
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: General Education Biological and Physical Sciences (BP), non-lab-based.
+
+PHYS 408 - Introduction to Quantum Mechanics
+Credits: 3
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: General Education Biological and Physical Sciences (BP), non-lab-based.
+
+TRSS 301 - Introduction to Transportation Systems
+Credits: 3
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: General Education Biological and Physical Sciences (BP), non-lab-based.
+
+GENERAL EDUCATION - SOCIAL AND BEHAVIORAL SCIENCES (SB):
+
+ECON 211 - Principles of Economics I
+Credits: 3
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: General Education Social and Behavioral Sciences (SB). Students must select two courses from different disciplines in the SB distribution area.
+
+ECON 212 - Principles of Economics II
+Credits: 3
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: General Education Social and Behavioral Sciences (SB). Students must select two courses from different disciplines in the SB distribution area.
+
+HIST 101 - World History I
+Credits: 3
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: General Education Social and Behavioral Sciences (SB). Students must select two courses from different disciplines in the SB distribution area.
+
+HIST 102 - World History II
+Credits: 3
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: General Education Social and Behavioral Sciences (SB). Students must select two courses from different disciplines in the SB distribution area.
+
+HIST 105 - History of the United States I
+Credits: 3
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: General Education Social and Behavioral Sciences (SB). Students must select two courses from different disciplines in the SB distribution area.
+
+HIST 106 - History of the United States II
+Credits: 3
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: General Education Social and Behavioral Sciences (SB). Students must select two courses from different disciplines in the SB distribution area.
+
+HIST 111 - World History I Honors
+Credits: 3
+Prerequisites: Honors standing or departmental permission
+Offered: TBD
+Requirement: General Education Social and Behavioral Sciences (SB). Students must select two courses from different disciplines in the SB distribution area.
+
+HIST 112 - World History II Honors
+Credits: 3
+Prerequisites: Honors standing or departmental permission
+Offered: TBD
+Requirement: General Education Social and Behavioral Sciences (SB). Students must select two courses from different disciplines in the SB distribution area.
+
+HIST 115 - History of the United States I Honors
+Credits: 3
+Prerequisites: Honors standing or departmental permission
+Offered: TBD
+Requirement: General Education Social and Behavioral Sciences (SB). Students must select two courses from different disciplines in the SB distribution area.
+
+HIST 116 - History of the United States II Honors
+Credits: 3
+Prerequisites: Honors standing or departmental permission
+Offered: TBD
+Requirement: General Education Social and Behavioral Sciences (SB). Students must select two courses from different disciplines in the SB distribution area.
+
+HIST 120 - Topics in American History
+Credits: 3
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: General Education Social and Behavioral Sciences (SB). Students must select two courses from different disciplines in the SB distribution area.
+
+HIST 130 - Topics in World History
+Credits: 3
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: General Education Social and Behavioral Sciences (SB). Students must select two courses from different disciplines in the SB distribution area.
+
+HIST 140 - Introduction to African American History
+Credits: 3
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: General Education Social and Behavioral Sciences (SB). Students must select two courses from different disciplines in the SB distribution area.
+
+MHTC 103 - Introduction to Group Dynamics
+Credits: 3
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: General Education Social and Behavioral Sciences (SB). Students must select two courses from different disciplines in the SB distribution area.
+
+MISC 301 - Introduction to Team and Small Unit Operations
+Credits: 3
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: General Education Social and Behavioral Sciences (SB). Students must select two courses from different disciplines in the SB distribution area.
+
+POSC 201 - American National Government
+Credits: 3
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: General Education Social and Behavioral Sciences (SB). Students must select two courses from different disciplines in the SB distribution area.
+
+POSC 206 - Black Politics in America
+Credits: 3
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: General Education Social and Behavioral Sciences (SB). Students must select two courses from different disciplines in the SB distribution area.
+
+PSYC 101 - General Psychology
+Credits: 3
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: General Education Social and Behavioral Sciences (SB). Students must select two courses from different disciplines in the SB distribution area.
+
+PSYC 111 - Honors General Psychology
+Credits: 3
+Prerequisites: Honors standing or departmental permission
+Offered: TBD
+Requirement: General Education Social and Behavioral Sciences (SB). Students must select two courses from different disciplines in the SB distribution area.
+
+SOCI 101 - Introduction to Sociology
+Credits: 3
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: General Education Social and Behavioral Sciences (SB). Students must select two courses from different disciplines in the SB distribution area.
+
+SOCI 110 - Introduction to Anthropology
+Credits: 3
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: General Education Social and Behavioral Sciences (SB). Students must select two courses from different disciplines in the SB distribution area.
+
+SOSC 101 - Introduction to the Social Sciences
+Credits: 3
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: General Education Social and Behavioral Sciences (SB). Students must select two courses from different disciplines in the SB distribution area.
+
+GENERAL EDUCATION - HEALTH AND PHYSICAL EDUCATION:
+
+HLTH 103 - Social and Behavioral Health Theory Applications
+Credits: 3
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: General Education Health and Healthful Living (HH). Students must complete one option in the HH distribution area.
+
+HLTH 200 - Discovering Public Health
+Credits: 3
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: General Education Health and Healthful Living (HH). Students must complete one option in the HH distribution area.
+
+HLTH 203 - Personal and Community Health
+Credits: 3
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: General Education Health and Healthful Living (HH). Students must complete one option in the HH distribution area.
+
+HLTH 300 - Environmental Health Citizenship
+Credits: 3
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: General Education Health and Healthful Living (HH). Students must complete one option in the HH distribution area.
+
+NUSC 160 - Introduction to Nutrition
+Credits: 3
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: General Education Health and Healthful Living (HH). Students must complete one option in the HH distribution area.
+
+GENERAL EDUCATION - CONTEMPORARY AND INTERNATIONAL ISSUES (CI):
+
+AFST 350 - Africana Studies
+Credits: 3
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: General Education Contemporary and Global Issues, Ideas and Values (CI). Students must complete one option in the CI distribution area.
+
+HIST 350 - Introduction to the African Diaspora
+Credits: 3
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: General Education Contemporary and Global Issues, Ideas and Values (CI). Students must complete one option in the CI distribution area.
+
+HIST 360 - Introduction to the African Diaspora Honors
+Credits: 3
+Prerequisites: Honors standing or departmental permission
+Offered: TBD
+Requirement: General Education Contemporary and Global Issues, Ideas and Values (CI). Students must complete one option in the CI distribution area.
+
+WGST 201 - Women's and Gender Studies
+Credits: 3
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: General Education Contemporary and Global Issues, Ideas and Values (CI). Students must complete one option in the CI distribution area.
+
+UNIVERSITY REQUIREMENTS:
+
+FIN 101 - Financial Literacy
+Credits: 1
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: University Requirement option. Students complete any Physical Education activity course, FIN 101, MIND 101, or DSVG 101.
+
+MIND 101 - Mindfulness and Well-Being
+Credits: 1
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: University Requirement option. Students complete any Physical Education activity course, FIN 101, MIND 101, or DSVG 101.
+
+DSVG 101 - Design Thinking
+Credits: 1
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: University Requirement option. Students complete any Physical Education activity course, FIN 101, MIND 101, or DSVG 101.
+
+ORLA 101 - Liberal Arts Orientation
+Credits: 1
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: University orientation requirement for James H. Gilliam, Jr. College of Liberal Arts.
+
+ORBM 102 - Business and Management Orientation
+Credits: 1
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: University orientation requirement for Earl G. Graves School of Business and Management.
+
+ORED 103 - Education and Urban Studies Orientation
+Credits: 1
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: University orientation requirement for School of Education and Urban Studies.
+
+OREN 104 - Engineering Orientation
+Credits: 1
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: University orientation requirement for Clarence M. Mitchell Jr. School of Engineering.
+
+ORNS 106 - SCMNS Orientation
+Credits: 1
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: University orientation requirement for School of Computer, Mathematical and Natural Sciences.
+
+ORAP 107 - Architecture and Planning Orientation
+Credits: 1
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: University orientation requirement for School of Architecture and Planning.
+
+ORCH 109 - Community Health and Policy Orientation
+Credits: 1
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: University orientation requirement for School of Community Health and Policy.
+
+ORSW 101 - Social Work Orientation
+Credits: 1
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: University orientation requirement for School of Social Work.
+
+ORSJ 101 - Global Journalism and Communication Orientation
+Credits: 1
+Prerequisites: See department or catalog
+Offered: TBD
+Requirement: University orientation requirement for School of Global Journalism and Communication.
+
+HONR 101 - Freshman Honors for Liberal Arts
+Credits: 1
+Prerequisites: Honors standing or departmental permission
+Offered: TBD
+Requirement: University orientation requirement for Freshman Honors for Liberal Arts.
+
+HONR 106 - Freshman Honors in SCMNS
+Credits: 1
+Prerequisites: Honors standing or departmental permission
+Offered: TBD
+Requirement: University orientation requirement for Freshman Honors in SCMNS.
 
 REQUIRED COURSES:
 
